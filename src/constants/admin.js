@@ -1,0 +1,21 @@
+export const ADMIN_ROLES = {
+  SUPER_ADMIN: "SUPER_ADMIN",
+  ADMIN: "ADMIN",
+};
+
+export const ADMIN_STATUS = {
+  INVITED_PENDING: "INVITED_PENDING",
+  ACTIVE: "ACTIVE",
+  SUSPENDED: "SUSPENDED",
+};
+
+export const ADMIN_ROLE_LABELS = {
+  [ADMIN_ROLES.SUPER_ADMIN]: "Super Admin",
+  [ADMIN_ROLES.ADMIN]: "Admin",
+};
+
+export const ADMIN_STATUS_LABELS = {
+  [ADMIN_STATUS.INVITED_PENDING]: "Invitado pendiente",
+  [ADMIN_STATUS.ACTIVE]: "Activo",
+  [ADMIN_STATUS.SUSPENDED]: "Suspendido",
+};

@@ -1,0 +1,129 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  background: rgba(246, 242, 238, 0.9);
+  border-bottom: 1px solid var(--border);
+}
+
+.navbar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 0;
+}
+
+.navbar__links {
+  display: flex;
+  gap: 22px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar__links a {
+  text-decoration: none;
+  color: var(--muted);
+  font-weight: 600;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.navbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navbar__login {
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 2px solid var(--purple);
+  text-decoration: none;
+  color: var(--muted);
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.navbar__login:hover {
+  transform: translateY(-2px);
+}
+
+.navbar__toggle {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 18px;
+}
+
+.navbar__logo-img {
+  height: 80px;
+  width: auto;
+  padding: 0;
+}
+
+.nav-link {
+  padding: 0.5rem 1.5rem;
+  border-radius: 30px;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+  font-size: 20px;
+}
+
+.nav-link:hover {
+  background: var(--purple);
+  color: #fff;
+}
+
+.nav-link.is-active {
+  background: var(--purple);
+  color: #fff;
+}
+
+@media (max-width: 800px) {
+  .navbar__links {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .navbar__logo {
+    display: none;
+  }
+
+  .navbar__inner {
+    justify-content: space-between;
+  }
+
+  .navbar__toggle {
+    display: block;
+    order: -1; /* lo manda a la izquierda */
+    margin-right: auto;
+  }
+
+  .navbar__actions {
+    margin-left: auto; /* deja el botón admin a la derecha */
+  }
+
+  .navbar__links {
+    display: none;
+    position: absolute;
+    top: 64px;
+    right: auto;
+    left: 16px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .navbar__links.is-open {
+    display: flex;
+  }
+}

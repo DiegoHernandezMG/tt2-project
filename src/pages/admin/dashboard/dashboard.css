@@ -1,0 +1,311 @@
+.dashboard-page h1 {
+  margin-bottom: 8px;
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  letter-spacing: -0.03em;
+}
+
+.dashboard-page .card {
+  border-radius: 22px;
+}
+
+.dashboard-header > div:first-child {
+  background: linear-gradient(135deg, #ffffff 0%, #f5efe9 100%);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 18px 20px;
+  box-shadow: var(--shadow);
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.dashboard-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
+}
+
+.dashboard-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+}
+
+.dashboard-controls .control {
+  width: 100%;
+}
+
+.dashboard-controls .control input,
+.dashboard-controls .control select {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background-color: #fff;
+  color: var(--ink);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.dashboard-controls .control select {
+  padding-right: 42px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  /* flecha custom */
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(50% - 3px),
+    calc(100% - 12px) calc(50% - 3px);
+  background-size:
+    6px 6px,
+    6px 6px;
+  background-repeat: no-repeat;
+}
+
+.dashboard-controls .control input:hover,
+.dashboard-controls .control select:hover {
+  border-color: var(--purple);
+}
+
+.dashboard-controls .control input:focus,
+.dashboard-controls .control select:focus {
+  outline: none;
+  border-color: var(--purple);
+  box-shadow: 0 0 0 4px rgba(65, 15, 122, 0.12);
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.dashboard-summary {
+  margin: 32px 0 28px;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 1),
+    rgba(244, 236, 228, 0.95)
+  );
+}
+
+.stat-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.stat-value {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(1.7rem, 2vw, 2.3rem);
+  margin: 0;
+  color: var(--ink);
+}
+
+.patient-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.status {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status--ok {
+  background: rgba(15, 122, 108, 0.1);
+  color: var(--accent);
+  border: 1px solid rgba(15, 122, 108, 0.3);
+}
+
+.status--off {
+  background: rgba(196, 104, 42, 0.12);
+  color: var(--accent-2);
+  border: 1px solid rgba(196, 104, 42, 0.3);
+}
+
+.patient-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.stat-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 6px;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.stat-detail {
+  margin: 0;
+  font-size: 16px;
+  color: var(--ink);
+}
+
+.stat-stack {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 20px 0;
+}
+
+.stat-list h3 {
+  margin-bottom: 16px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--ink);
+}
+
+.bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+}
+
+.bar-value {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dashboard-details,
+.dashboard-tables {
+  margin-top: 26px;
+}
+
+.stack {
+  display: grid;
+  gap: 12px;
+}
+
+.list-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--ink);
+}
+
+.list-value {
+  color: var(--muted);
+}
+
+.subheading {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin: 0 0 10px;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.table {
+  display: grid;
+  gap: 10px;
+  overflow-x: auto;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.table-head {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.muted {
+  color: var(--muted);
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .patient-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stat-stack {
+    grid-template-columns: 1fr;
+  }
+
+  .table-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bar-row {
+    grid-template-columns: 1fr;
+  }
+}

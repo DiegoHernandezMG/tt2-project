@@ -1,0 +1,81 @@
+.about__hero {
+  padding: 0;
+}
+
+.about__lead {
+  font-size: 20px;
+  text-align: center;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.about__values {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.about__cards {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(300px, 1fr);
+  gap: 24px;
+  overflow-x: auto;
+  padding-bottom: 0px;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+
+.about__cards .card {
+  scroll-snap-align: start;
+  text-align: justify;
+  height: 600px; /* altura default */
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.about__cards .card p {
+  overflow-y: auto; /* scroll solo en el texto */
+  margin-top: 12px;
+  padding-bottom: 44px;
+  scrollbar-gutter: stable;
+}
+
+.about__cards .card::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 72px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0) 0%,
+    var(--grey-shadow) 100%
+  );
+}
+
+.about__value-list {
+  display: grid;
+  gap: 18px;
+}
+
+.about__avatar {
+  width: 200px; /* ajusta a gusto */
+  height: 200px;
+  object-fit: cover; /* recorta sin deformar */
+  border-radius: 16px; /* opcional */
+  display: block;
+  margin: 0 auto 12px;
+}
+
+@media (max-width: 900px) {
+  .about__values {
+    grid-template-columns: 1fr;
+  }
+}
