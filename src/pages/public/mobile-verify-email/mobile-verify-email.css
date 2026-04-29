@@ -1,0 +1,108 @@
+.mobile-verify-page {
+  min-height: 100vh;
+  background: #f4ece4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.mobile-verify-card {
+  background: #ffffff;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+.mobile-verify-header {
+  background: #410f7a;
+  padding: 28px 32px;
+}
+
+.mobile-verify-brand {
+  margin: 0;
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+  font-family: "Space Grotesk", sans-serif;
+  letter-spacing: -0.3px;
+}
+
+.mobile-verify-brand-sub {
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 13px;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.mobile-verify-body {
+  padding: 32px;
+}
+
+.mobile-verify-waiting {
+  display: grid;
+  gap: 8px;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.mobile-verify-waiting-sub {
+  font-size: 0.88rem;
+}
+
+.mobile-verify-success {
+  border: 1px solid rgba(15, 122, 108, 0.2);
+  background: rgba(15, 122, 108, 0.08);
+  border-radius: 14px;
+  padding: 20px;
+  display: grid;
+  gap: 8px;
+}
+
+.mobile-verify-success-title {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: #0f7a6c;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mobile-verify-success-text {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.mobile-verify-error-box {
+  border: 1px solid rgba(192, 57, 43, 0.2);
+  background: rgba(192, 57, 43, 0.06);
+  border-radius: 14px;
+  padding: 20px;
+  display: grid;
+  gap: 8px;
+}
+
+.mobile-verify-error-title {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: #c0392b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mobile-verify-error-text {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}

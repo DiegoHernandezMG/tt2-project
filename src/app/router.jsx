@@ -16,6 +16,7 @@ import UsersPage from "../pages/admin/users/users";
 import ActivatePage from "../pages/admin/activate/activate";
 import ResetPasswordPage from "../pages/admin/reset-password/reset-password";
 import MobileResetPasswordPage from "../pages/public/mobile-reset-password/mobile-reset-password";
+import MobileVerifyEmailPage from "../pages/public/mobile-verify-email/mobile-verify-email";
 import ProfilePage from "../pages/admin/profile/profile";
 import { ADMIN_ROLES } from "../constants/admin";
 
@@ -65,6 +66,7 @@ function Router() {
 
         {/* 🔐 Admin */}
         <Route path="/mobile-reset-password" element={<MobileResetPasswordPage />} />
+        <Route path="/mobile-verify-email" element={<MobileVerifyEmailPage />} />
 
         <Route path="/admin/login" element={<Login />} />
         <Route path="/admin/activate" element={<ActivatePage />} />
