@@ -11,8 +11,15 @@ function MobileResetPasswordPage() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = adminSupabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
+    document.title = "Recuperar contraseña — SerenaMente";
+
+    // Check if session already exists (token processed before listener registered)
+    adminSupabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setSessionReady(true);
+    });
+
+    const { data: { subscription } } = adminSupabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
         setSessionReady(true);
       }
     });
