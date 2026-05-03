@@ -1,27 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import "./navbar.css";
 import suaeyd from "../../assets/7-serenamente-logo.png";
 
 function Navbar() {
   const [open, setOpen] = useState(false);
   const navRef = useRef(null);
+  const location = useLocation();
 
   useEffect(() => {
-    if (!open) return;
-    const handleClickOutside = (e) => {
-      if (navRef.current && !navRef.current.contains(e.target)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("touchstart", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
-    };
-  }, [open]);
+    setOpen(false);
+  }, [location.pathname]);
 
   const close = () => setOpen(false);
 
@@ -54,13 +44,13 @@ function Navbar() {
           <div className={`navbar__drawer ${open ? "is-open" : ""}`}>
             <button className="navbar__drawer-close" onClick={close} aria-label="Cerrar menú">✕</button>
             <ul className="navbar__drawer-links">
-              <li><NavLink to="/" end className={({ isActive }) => isActive ? "drawer-link is-active" : "drawer-link"} onClick={close}>Inicio</NavLink></li>
-              <li><NavLink to="/nosotros" className={({ isActive }) => isActive ? "drawer-link is-active" : "drawer-link"} onClick={close}>Nosotros</NavLink></li>
-              <li><NavLink to="/comenzar" className={({ isActive }) => isActive ? "drawer-link is-active" : "drawer-link"} onClick={close}>Comenzar</NavLink></li>
-              <li><NavLink to="/faq" className={({ isActive }) => isActive ? "drawer-link is-active" : "drawer-link"} onClick={close}>Dudas</NavLink></li>
+              <li><NavLink to="/" end className={({ isActive }) => isActive ? "drawer-link is-active" : "drawer-link"}>Inicio</NavLink></li>
+              <li><NavLink to="/nosotros" className={({ isActive }) => isActive ? "drawer-link is-active" : "drawer-link"}>Nosotros</NavLink></li>
+              <li><NavLink to="/comenzar" className={({ isActive }) => isActive ? "drawer-link is-active" : "drawer-link"}>Comenzar</NavLink></li>
+              <li><NavLink to="/faq" className={({ isActive }) => isActive ? "drawer-link is-active" : "drawer-link"}>Dudas</NavLink></li>
             </ul>
             <div className="navbar__drawer-footer">
-              <NavLink to="/admin/login" className="admin-access-button" onClick={close}>Acceso admin</NavLink>
+              <NavLink to="/admin/login" className="admin-access-button">Acceso admin</NavLink>
             </div>
           </div>
         </>,

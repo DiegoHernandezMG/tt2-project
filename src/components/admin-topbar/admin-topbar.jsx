@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { adminSupabase } from "../../lib/supabase-admin";
 import { ADMIN_ROLES, ADMIN_ROLE_LABELS } from "../../constants/admin";
 import { useAuth } from "../../hooks/use-auth";
@@ -10,6 +10,11 @@ function AdminTopbar() {
   const navigate = useNavigate();
   const { profile, loading } = useAuth();
   const [open, setOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
 
   const roleLabel = loading
     ? "Cargando..."
@@ -75,13 +80,13 @@ function AdminTopbar() {
               </li>
               {profile?.role === ADMIN_ROLES.SUPER_ADMIN && (
                 <li>
-                  <NavLink to="/admin/users" className={({ isActive }) => isActive ? "drawer-link is-active" : "drawer-link"} onClick={close}>
+                  <NavLink to="/admin/users" className={({ isActive }) => isActive ? "drawer-link is-active" : "drawer-link"}>
                     Admin
                   </NavLink>
                 </li>
               )}
               <li>
-                <NavLink to="/admin/profile" className={({ isActive }) => isActive ? "drawer-link is-active" : "drawer-link"} onClick={close}>
+                <NavLink to="/admin/profile" className={({ isActive }) => isActive ? "drawer-link is-active" : "drawer-link"}>
                   Mi perfil
                 </NavLink>
               </li>
