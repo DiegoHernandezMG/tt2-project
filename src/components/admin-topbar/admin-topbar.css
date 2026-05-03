@@ -83,17 +83,132 @@
   color: #fff;
 }
 
+.admin-topbar__toggle {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 18px;
+  cursor: pointer;
+  justify-self: end;
+}
+
+/* Admin drawer */
+.admin-drawer__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 17, 24, 0.45);
+  z-index: 20;
+  backdrop-filter: blur(2px);
+}
+
+.admin-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100dvh;
+  width: 72vw;
+  max-width: 300px;
+  background: #fff;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 20px 32px;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-drawer.is-open {
+  transform: translateX(0);
+}
+
+.admin-drawer__close {
+  align-self: flex-end;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+.admin-drawer__user {
+  padding: 14px 16px;
+  background: rgba(65, 15, 122, 0.06);
+  border-radius: 14px;
+  margin-bottom: 16px;
+}
+
+.admin-drawer__user-name {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.admin-drawer__user-role {
+  margin: 2px 0 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.admin-drawer__links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.drawer-link {
+  display: block;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.drawer-link:hover,
+.drawer-link.is-active {
+  background: var(--purple);
+  color: #fff;
+}
+
+.admin-drawer__footer {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+
+.admin-drawer__logout {
+  width: 100%;
+  text-align: center;
+  box-sizing: border-box;
+}
+
 @media (max-width: 1000px) {
   .admin-topbar {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr auto;
   }
 
   .admin-topbar__controls {
-    justify-self: start;
-    gap: 14px;
+    display: none;
   }
 
-  .admin-topbar__right {
-    display: contents;
+  .admin-topbar__toggle {
+    display: block;
   }
 }
