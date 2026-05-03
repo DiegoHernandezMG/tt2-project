@@ -661,3 +661,22 @@
     flex-direction: column-reverse;
   }
 }
+
+@media (max-width: 480px) {
+  .users-table-scroll,
+  .audit-table-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .users-table-row {
+    font-size: 12px;
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .audit-row {
+    font-size: 12px;
+    padding: 6px 8px;
+    gap: 8px;
+  }
+}
