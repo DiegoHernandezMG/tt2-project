@@ -34,11 +34,11 @@ function AdminTopbar() {
       <div className="admin-topbar__controls">
         <nav className="admin-topbar__nav">
           <NavLink to="/admin/dashboard" className={({ isActive }) => isActive ? "nav-link is-active" : "nav-link"}>
-            Dashboard
+            Pacientes
           </NavLink>
           {profile?.role === ADMIN_ROLES.SUPER_ADMIN && (
             <NavLink to="/admin/users" className={({ isActive }) => isActive ? "nav-link is-active" : "nav-link"}>
-              Usuarios
+              Admin
             </NavLink>
           )}
         </nav>
@@ -70,13 +70,13 @@ function AdminTopbar() {
             <ul className="admin-drawer__links">
               <li>
                 <NavLink to="/admin/dashboard" className={({ isActive }) => isActive ? "drawer-link is-active" : "drawer-link"} onClick={close}>
-                  Dashboard
+                  Pacientes
                 </NavLink>
               </li>
               {profile?.role === ADMIN_ROLES.SUPER_ADMIN && (
                 <li>
                   <NavLink to="/admin/users" className={({ isActive }) => isActive ? "drawer-link is-active" : "drawer-link"} onClick={close}>
-                    Usuarios
+                    Admin
                   </NavLink>
                 </li>
               )}
