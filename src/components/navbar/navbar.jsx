@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { NavLink } from "react-router-dom";
 import "./navbar.css";
 import suaeyd from "../../assets/7-serenamente-logo.png";
@@ -47,8 +48,11 @@ function Navbar() {
         </button>
       </div>
 
-      {/* Overlay */}
-      {open && <div className="navbar__overlay" onClick={close} />}
+      {/* Overlay — rendered in body to escape navbar stacking context */}
+      {open && createPortal(
+        <div className="navbar__overlay" onClick={close} />,
+        document.body
+      )}
 
       {/* Drawer */}
       <div className={`navbar__drawer ${open ? "is-open" : ""}`}>
