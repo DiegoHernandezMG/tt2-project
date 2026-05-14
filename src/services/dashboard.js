@@ -7,7 +7,13 @@ const buildFullName = (nombre, apellidos) =>
     .join(" ");
 
 export const listDashboardProfiles = async () => {
-  const { data, error } = await adminSupabase
+  const { data: admins } = await adminSupabase
+    .from("admins")
+    .select("auth_user_id");
+
+  const adminIds = (admins ?? []).map((a) => a.auth_user_id);
+
+  let query = adminSupabase
     .from("perfiles")
     .select(
       `id_usuario, nombre, apellidos, fecha_nacimiento, es_mayor_edad,
@@ -16,6 +22,12 @@ export const listDashboardProfiles = async () => {
     )
     .order("nombre", { ascending: true })
     .order("apellidos", { ascending: true });
+
+  if (adminIds.length > 0) {
+    query = query.not("id_usuario", "in", `(${adminIds.join(",")})`);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw new Error(`No se pudieron cargar perfiles: ${error.message}`);
 

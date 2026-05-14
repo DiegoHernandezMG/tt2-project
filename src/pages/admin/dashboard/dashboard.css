@@ -363,6 +363,13 @@
 .delete-confirm__actions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.delete-confirm__actions .button {
+  flex: 1;
+  min-width: 130px;
+  text-align: center;
 }
 
 .emotion-chart {
@@ -381,7 +388,7 @@
 }
 
 .emotion-chart__emoji {
-  font-size: 18px;
+  font-size: clamp(14px, 2.5vw, 18px);
   line-height: 1;
   min-height: 22px;
 }

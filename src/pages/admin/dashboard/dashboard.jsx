@@ -179,16 +179,6 @@ const buildPatientSheet = (profile, patientData, calcAge) => {
   }
   rows.push([]);
 
-  rows.push(["MÉTRICAS IA"]);
-  rows.push(["Campo", "Valor"]);
-  const m = patientData?.metricas?.[0];
-  if (m) {
-    rows.push(["Días de acceso", m.dias_acceso]);
-    rows.push(["% Ejercicios completados", m.porcentaje_ejercicios]);
-    rows.push(["Adherencia IA", m.resumen_adherencia_ia]);
-    rows.push(["Tendencia emocional IA", m.tendencia_emocional_ia]);
-  }
-
   return XLSX.utils.aoa_to_sheet(rows);
 };
 
