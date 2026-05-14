@@ -43,12 +43,24 @@ serve(async (req) => {
   const { userId } = await req.json();
   if (!userId) return json({ error: "userId requerido." }, 400);
 
+  const now = new Date();
+  const dow = now.getUTCDay();
+  const mondayOffset = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(now);
+  monday.setUTCDate(now.getUTCDate() + mondayOffset);
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  const mondayStr = monday.toISOString().slice(0, 10);
+  const sundayStr = sunday.toISOString().slice(0, 10);
+
   const [
     { data: evaluaciones },
     { data: niveles },
     { data: respuestas },
     { data: metricas },
     { data: accesos },
+    { data: sesionFinal },
+    { data: emociones },
   ] = await Promise.all([
     serviceClient
       .from("evaluaciones_internivel")
@@ -67,8 +79,7 @@ serve(async (req) => {
       .select("nivel, ejercicio_codigo, completado, completado_en, duracion_segundos")
       .eq("id_usuario", userId)
       .eq("completado", true)
-      .order("completado_en", { ascending: false })
-      .limit(10),
+      .order("completado_en", { ascending: false }),
 
     serviceClient
       .from("intervencion_metricas_nivel")
@@ -81,6 +92,21 @@ serve(async (req) => {
       .from("intervencion_accesos_nivel")
       .select("total_accesos")
       .eq("id_usuario", userId),
+
+    serviceClient
+      .from("sesiones_evaluacion")
+      .select("tipo_sesion, completada_en")
+      .eq("id_usuario", userId)
+      .eq("tipo_sesion", "final")
+      .maybeSingle(),
+
+    serviceClient
+      .from("seguimiento_diario")
+      .select("emocion_clave, emocion_etiqueta, intensidad, fecha, registrado_en")
+      .eq("id_usuario", userId)
+      .gte("fecha", mondayStr)
+      .lte("fecha", sundayStr)
+      .order("registrado_en", { ascending: false }),
   ]);
 
   const totalAccesos = (accesos ?? []).reduce(
@@ -88,11 +114,16 @@ serve(async (req) => {
     0,
   );
 
+  const { data: { user: authUser } } = await serviceClient.auth.admin.getUserById(userId);
+
   return json({
     evaluaciones: evaluaciones ?? [],
     niveles: niveles ?? [],
     respuestas: respuestas ?? [],
     metricas: metricas ?? [],
     totalAccesos,
+    sesionFinal: sesionFinal ?? null,
+    emocionesSemanales: emociones ?? [],
+    email: authUser?.email ?? null,
   });
 });

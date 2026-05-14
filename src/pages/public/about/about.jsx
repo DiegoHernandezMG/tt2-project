@@ -180,8 +180,8 @@ function About() {
             <h3>Diego Armando Hernández Suarez</h3>
             <p>
               Estudiante del último semestre de la Ingeniería en Sistemas
-              Computacionales, especializado en el área de Data Analytics.
-              Apasionado de la música y las nuevas tecnologías.
+              Computacionales, con amplia experiencia en el área de data en el
+              ámbito musical y una mente creativa.
             </p>
           </div>
         </div>

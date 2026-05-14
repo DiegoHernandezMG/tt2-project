@@ -129,6 +129,16 @@
   color: var(--ink);
 }
 
+.stat-value--warning {
+  color: #c4682a;
+  font-size: clamp(0.95rem, 1.4vw, 1.2rem);
+}
+
+.stat-value--success {
+  color: #0f7a6c;
+  font-size: clamp(0.95rem, 1.4vw, 1.2rem);
+}
+
 .patient-header {
   display: flex;
   align-items: flex-start;
@@ -181,8 +191,27 @@
 
 .stat-stack {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
+}
+
+.card--flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-stack--fill {
+  flex: 1;
+  align-items: stretch;
+}
+
+.stat-stack__item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(65, 15, 122, 0.04);
+  border-radius: 14px;
 }
 
 .divider {
@@ -259,6 +288,14 @@
   overflow-x: auto;
 }
 
+.table-body-scroll {
+  max-height: 260px;
+  overflow-y: auto;
+  display: grid;
+  gap: 10px;
+  scrollbar-gutter: stable;
+}
+
 .table-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -266,6 +303,10 @@
   font-family: "Space Grotesk", sans-serif;
   font-size: 14px;
   color: var(--ink);
+}
+
+.table--3col .table-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .table-head {
@@ -280,6 +321,95 @@
 .muted {
   color: var(--muted);
   margin: 0;
+}
+
+.button--danger {
+  background: #b53f33;
+  color: #fff;
+  border-color: #b53f33;
+}
+
+.button--danger:hover {
+  background: #932e24;
+  border-color: #932e24;
+}
+
+.button--danger:disabled {
+  background: #d9a09a;
+  border-color: #d9a09a;
+  cursor: not-allowed;
+}
+
+.patient-delete {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.delete-confirm__warning {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 13px;
+  color: #b53f33;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.delete-confirm__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.emotion-chart {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  padding: 16px 0 4px;
+}
+
+.emotion-chart__col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.emotion-chart__emoji {
+  font-size: 18px;
+  line-height: 1;
+  min-height: 22px;
+}
+
+.emotion-chart__track {
+  width: 100%;
+  height: 100px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.emotion-chart__bar {
+  width: 100%;
+  border-radius: 6px 6px 0 0;
+  background: linear-gradient(to top, var(--purple), rgba(65, 15, 122, 0.4));
+  transition: height 0.4s ease;
+}
+
+.emotion-chart__bar--empty {
+  background: var(--border);
+}
+
+.emotion-chart__label {
+  font-size: 11px;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 @media (max-width: 900px) {

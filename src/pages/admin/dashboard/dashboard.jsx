@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import AdminTopbar from "../../../components/admin-topbar/admin-topbar";
 import { getPatientData, listDashboardProfiles } from "../../../services/dashboard";
+import { adminSupabase, adminSupabaseAnonKey } from "../../../lib/supabase-admin";
+import { useAuth } from "../../../hooks/use-auth";
+import { ADMIN_ROLES } from "../../../constants/admin";
 import "./dashboard.css";
 
 const EMPTY = "—";
@@ -35,6 +38,66 @@ const fmtSeconds = (secs) => {
   return `${Math.floor(secs / 60)}m ${secs % 60}s`;
 };
 
+const EMOTION_EMOJIS = {
+  entusiasmado: "🤩",
+  alegre: "😄",
+  relajado: "😌",
+  en_calma: "🙂",
+  inquieto: "😕",
+  estresado: "😣",
+  triste: "😢",
+  enojado: "😤",
+  agotado: "😴",
+};
+
+const DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+function EmotionChart({ data }) {
+  const weekDates = useMemo(() => {
+    const now = new Date();
+    const dow = now.getDay();
+    const offset = dow === 0 ? -6 : 1 - dow;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + offset);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d.toISOString().slice(0, 10);
+    });
+  }, []);
+
+  const byDate = useMemo(() => {
+    const map = {};
+    for (const r of (data ?? [])) {
+      if (!map[r.fecha]) map[r.fecha] = r;
+    }
+    return map;
+  }, [data]);
+
+  return (
+    <div className="emotion-chart">
+      {weekDates.map((date, i) => {
+        const r = byDate[date];
+        const barPx = r ? Math.max(Math.round((r.intensidad / 10) * 100), 10) : 6;
+        const emoji = r ? (EMOTION_EMOJIS[r.emocion_clave] ?? "😐") : null;
+        return (
+          <div key={date} className="emotion-chart__col">
+            <span className="emotion-chart__emoji">{emoji ?? ""}</span>
+            <div className="emotion-chart__track">
+              <div
+                className={`emotion-chart__bar${r ? "" : " emotion-chart__bar--empty"}`}
+                style={{ height: barPx }}
+                title={r ? `${r.emocion_etiqueta}: ${r.intensidad}/10` : "Sin registro"}
+              />
+            </div>
+            <span className="emotion-chart__label">{DAY_LABELS[i]}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function ScoreDelta({ baseline, current }) {
   if (baseline == null || current == null) return <span>{EMPTY}</span>;
   const delta = current - baseline;
@@ -65,22 +128,38 @@ const buildPatientSheet = (profile, patientData, calcAge) => {
   rows.push(["Lugar de residencia", profile?.lugar_residencia]);
   rows.push(["Fecha de nacimiento", profile?.fecha_nacimiento]);
   rows.push(["Total conexiones", profile?.total_conexiones]);
-  rows.push(["Onboarding completado en", profile?.onboarding_completado_en]);
+  rows.push(["Correo", patientData?.email ?? ""]);
   rows.push(["Registro", profile?.creado_en]);
   rows.push(["Estado", profile?.usuario_activo ? "Activo" : "Inactivo"]);
   rows.push([]);
 
   rows.push(["EVALUACIONES CLÍNICAS"]);
-  rows.push(["Nivel", "OASIS", "ODSIS", "Bienestar", "Baseline OASIS", "Baseline ODSIS", "Enviada"]);
+  rows.push(["Nivel", "OASIS", "ODSIS", "Baseline OASIS", "Baseline ODSIS", "Enviada"]);
   for (const ev of patientData?.evaluaciones ?? []) {
-    rows.push([ev.nivel, ev.oasis_total, ev.odsis_total, ev.bienestar_score, ev.baseline_oasis, ev.baseline_odsis, ev.enviada ? "Sí" : "No"]);
+    rows.push([ev.nivel, ev.oasis_total, ev.odsis_total, ev.baseline_oasis, ev.baseline_odsis, ev.enviada ? "Sí" : "No"]);
   }
   rows.push([]);
 
+  const completedLevels = new Set(
+    (patientData?.evaluaciones ?? [])
+      .filter((ev) => ev.enviada)
+      .map((ev) => ev.nivel)
+  );
+  const maxCompletedLevel = completedLevels.size > 0 ? Math.max(...completedLevels) : 0;
+  const sesionFinal = patientData?.sesionFinal;
+  let estadoPrograma;
+  if (maxCompletedLevel === 7) {
+    estadoPrograma = sesionFinal?.completada_en ? "Finalizó programa" : "Evaluaciones finales pendientes";
+  } else {
+    estadoPrograma = maxCompletedLevel > 0 ? `En nivel ${maxCompletedLevel + 1}` : "Sin progreso registrado";
+  }
+  rows.push(["Estado del programa", estadoPrograma]);
+  rows.push([]);
+
   rows.push(["NIVELES"]);
-  rows.push(["Nivel", "Completado", "Desbloqueado siguiente", "Último acceso"]);
+  rows.push(["Nivel", "Completado", "Último acceso"]);
   for (const n of patientData?.niveles ?? []) {
-    rows.push([n.nivel, n.completado ? "Sí" : "No", n.desbloqueado_siguiente ? "Sí" : "No", n.ultimo_acceso_en]);
+    rows.push([n.nivel, completedLevels.has(n.nivel) ? "Sí" : "No", n.ultimo_acceso_en]);
   }
   rows.push([]);
 
@@ -88,6 +167,15 @@ const buildPatientSheet = (profile, patientData, calcAge) => {
   rows.push(["Ejercicio", "Nivel", "Duración (seg)", "Completado en"]);
   for (const r of patientData?.respuestas ?? []) {
     rows.push([r.ejercicio_codigo, r.nivel, r.duracion_segundos, r.completado_en]);
+  }
+  rows.push([]);
+
+  rows.push(["SEGUIMIENTO DIARIO DE EMOCIONES (semana actual)"]);
+  rows.push(["Fecha", "Día", "Emoción", "Intensidad"]);
+  const diasES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+  for (const e of patientData?.emocionesSemanales ?? []) {
+    const diaNombre = diasES[new Date(e.fecha + "T00:00:00").getDay()];
+    rows.push([e.fecha, diaNombre, e.emocion_etiqueta, e.intensidad]);
   }
   rows.push([]);
 
@@ -99,7 +187,6 @@ const buildPatientSheet = (profile, patientData, calcAge) => {
     rows.push(["% Ejercicios completados", m.porcentaje_ejercicios]);
     rows.push(["Adherencia IA", m.resumen_adherencia_ia]);
     rows.push(["Tendencia emocional IA", m.tendencia_emocional_ia]);
-    rows.push(["Recomendación IA", m.recomendacion_ia]);
   }
 
   return XLSX.utils.aoa_to_sheet(rows);
@@ -171,33 +258,34 @@ function Dashboard() {
   // Derived stats from patientData
   const stats = useMemo(() => {
     if (!patientData) return null;
-    const { evaluaciones, niveles, totalAccesos, metricas } = patientData;
+    const { evaluaciones, niveles, totalAccesos, metricas, sesionFinal } = patientData;
 
-    const nivelActual = niveles.reduce(
-      (max, n) => (n.desbloqueado_siguiente || n.completado ? Math.max(max, n.nivel) : max),
-      0,
-    );
+    const evalEnviadas = evaluaciones.filter((e) => e.enviada);
+    const nivelMaxCompletado = evalEnviadas.reduce((max, ev) => Math.max(max, ev.nivel), 0);
+
+    let programStatus;
+    if (nivelMaxCompletado === 7) {
+      programStatus = sesionFinal?.completada_en ? "finalizado" : "finales_pendientes";
+    } else {
+      programStatus = "en_progreso";
+    }
+
+    const nivelActual = programStatus === "en_progreso" ? nivelMaxCompletado + 1 : null;
 
     const ultimaConexion = niveles.reduce((latest, n) => {
       if (!n.ultimo_acceso_en) return latest;
       return !latest || n.ultimo_acceso_en > latest ? n.ultimo_acceso_en : latest;
     }, null);
 
-    const nivelMaxCompletado = niveles.reduce(
-      (max, n) => (n.completado ? Math.max(max, n.nivel) : max),
-      0,
-    );
-
-    const evalEnviadas = evaluaciones.filter((e) => e.enviada);
     const lastEval = evalEnviadas.at(-1) ?? null;
     const baseEval = evalEnviadas[0] ?? null;
-
     const latestMetrica = metricas[0] ?? null;
 
     return {
       nivelActual,
-      ultimaConexion,
       nivelMaxCompletado,
+      programStatus,
+      ultimaConexion,
       totalAccesos,
       lastEval,
       baseEval,
@@ -207,23 +295,72 @@ function Dashboard() {
 
   const totalPatients = isLoadingProfiles ? "..." : profilesError ? EMPTY : profiles.length;
 
+  const { profile: adminProfile } = useAuth();
+  const isSuperAdmin = adminProfile?.role === ADMIN_ROLES.SUPER_ADMIN;
+
   const [exportingAll, setExportingAll] = useState(false);
+  const [exportAllError, setExportAllError] = useState("");
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  const handleDeletePatient = async () => {
+    if (!selectedProfile) return;
+    setIsDeleting(true);
+    setDeleteError("");
+    try {
+      const session = await adminSupabase.auth.getSession();
+      const accessToken = session?.data?.session?.access_token;
+      const res = await fetch(
+        `${adminSupabase.supabaseUrl}/functions/v1/delete-patient`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken ?? adminSupabaseAnonKey}`,
+          },
+          body: JSON.stringify({ userId: selectedProfile.id_usuario }),
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo eliminar el paciente.");
+      setProfiles((prev) => prev.filter((p) => p.id_usuario !== selectedProfile.id_usuario));
+      setSelectedUserId("");
+      setShowDeleteConfirm(false);
+      setDeleteConfirmName("");
+    } catch (err) {
+      setDeleteError(err.message || "Error al eliminar.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleExportAll = async () => {
     if (!profiles.length) return;
     setExportingAll(true);
+    setExportAllError("");
     try {
       const wb = XLSX.utils.book_new();
       const results = await Promise.allSettled(
         profiles.map((p) => getPatientData(p.id_usuario)),
       );
+      const usedNames = new Set();
       results.forEach((result, i) => {
         const profile = profiles[i];
         const data = result.status === "fulfilled" ? result.value : null;
         const ws = buildPatientSheet(profile, data, calcAge);
-        XLSX.utils.book_append_sheet(wb, ws, sheetName(profile.fullName));
+        let name = sheetName(profile.fullName);
+        if (usedNames.has(name)) {
+          name = `${name.slice(0, 28)} ${i + 1}`.slice(0, 31);
+        }
+        usedNames.add(name);
+        XLSX.utils.book_append_sheet(wb, ws, name);
       });
       XLSX.writeFile(wb, `pacientes_serenamente_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch (err) {
+      setExportAllError(err.message || "No se pudo exportar.");
     } finally {
       setExportingAll(false);
     }
@@ -289,6 +426,7 @@ function Dashboard() {
               </button>
             </div>
           </div>
+          {exportAllError && <p className="login-error" style={{ marginBottom: 0 }}>{exportAllError}</p>}
 
           {/* Summary */}
           <div className="grid grid--3 dashboard-summary">
@@ -297,10 +435,18 @@ function Dashboard() {
               <p className="stat-value">{totalPatients}</p>
             </div>
             <div className="card stat-card">
-              <p className="stat-title">Nivel actual</p>
-              <p className="stat-value">
-                {isLoadingPatient ? "..." : stats?.nivelActual ? `Nivel ${stats.nivelActual}` : EMPTY}
-              </p>
+              <p className="stat-title">Progreso</p>
+              {isLoadingPatient ? (
+                <p className="stat-value">...</p>
+              ) : stats?.programStatus === "finalizado" ? (
+                <p className="stat-value stat-value--success">✓ Finalizó programa</p>
+              ) : stats?.programStatus === "finales_pendientes" ? (
+                <p className="stat-value stat-value--warning">⚠ Eval. finales pendientes</p>
+              ) : stats?.nivelActual ? (
+                <p className="stat-value">{`Nivel ${stats.nivelActual}`}</p>
+              ) : (
+                <p className="stat-value">{EMPTY}</p>
+              )}
             </div>
             <div className="card stat-card">
               <p className="stat-title">OASIS actual</p>
@@ -346,22 +492,68 @@ function Dashboard() {
                   <p className="stat-detail">{selectedProfile?.total_conexiones ?? EMPTY}</p>
                 </div>
                 <div>
-                  <p className="stat-label">Onboarding</p>
-                  <p className="stat-detail">{fmtDate(selectedProfile?.onboarding_completado_en)}</p>
+                  <p className="stat-label">Correo</p>
+                  <p className="stat-detail" style={{ wordBreak: "break-all" }}>{isLoadingPatient ? "..." : patientData?.email || EMPTY}</p>
                 </div>
                 <div>
                   <p className="stat-label">Registro</p>
                   <p className="stat-detail">{fmtDate(selectedProfile?.creado_en)}</p>
                 </div>
               </div>
+
+              {isSuperAdmin && selectedProfile && (
+                <div className="patient-delete">
+                  {!showDeleteConfirm ? (
+                    <button
+                      type="button"
+                      className="button button--danger"
+                      onClick={() => { setShowDeleteConfirm(true); setDeleteError(""); }}
+                    >
+                      Eliminar paciente
+                    </button>
+                  ) : (
+                    <div className="delete-confirm">
+                      <p className="delete-confirm__warning">
+                        Esta acción eliminará permanentemente todos los registros de <strong>{selectedProfile.fullName}</strong>. Escribe su nombre para confirmar.
+                      </p>
+                      <input
+                        className="login-input"
+                        type="text"
+                        placeholder={selectedProfile.fullName}
+                        value={deleteConfirmName}
+                        onChange={(e) => setDeleteConfirmName(e.target.value)}
+                      />
+                      {deleteError && <p className="login-error">{deleteError}</p>}
+                      <div className="delete-confirm__actions">
+                        <button
+                          type="button"
+                          className="button button--danger"
+                          onClick={handleDeletePatient}
+                          disabled={deleteConfirmName.trim() !== selectedProfile.fullName.trim() || isDeleting}
+                        >
+                          {isDeleting ? "Eliminando..." : "Confirmar eliminación"}
+                        </button>
+                        <button
+                          type="button"
+                          className="button"
+                          onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmName(""); setDeleteError(""); }}
+                          disabled={isDeleting}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="card">
+            <div className="card card--flex-col">
               <p className="purplelabel">Evaluaciones clínicas</p>
-              <div className="stat-stack">
-                <div>
+              <div className="stat-stack stat-stack--fill">
+                <div className="stat-stack__item">
                   <p className="stat-title">OASIS</p>
-                  <p className="stat-value" style={{ fontSize: "1.4rem" }}>
+                  <p className="stat-value">
                     {isLoadingPatient ? "..." : (
                       <ScoreDelta
                         baseline={stats?.baseEval?.baseline_oasis}
@@ -370,9 +562,9 @@ function Dashboard() {
                     )}
                   </p>
                 </div>
-                <div>
+                <div className="stat-stack__item">
                   <p className="stat-title">ODSIS</p>
-                  <p className="stat-value" style={{ fontSize: "1.4rem" }}>
+                  <p className="stat-value">
                     {isLoadingPatient ? "..." : (
                       <ScoreDelta
                         baseline={stats?.baseEval?.baseline_odsis}
@@ -381,25 +573,6 @@ function Dashboard() {
                     )}
                   </p>
                 </div>
-                <div>
-                  <p className="stat-title">Bienestar</p>
-                  <p className="stat-value" style={{ fontSize: "1.4rem" }}>
-                    {isLoadingPatient ? "..." : stats?.lastEval?.bienestar_score ?? EMPTY}
-                  </p>
-                </div>
-              </div>
-              <div className="divider" />
-              <div className="stat-list">
-                <p className="stat-title">Recomendación IA</p>
-                {isLoadingPatient ? (
-                  <p className="muted">Cargando...</p>
-                ) : stats?.latestMetrica?.recomendacion_ia ? (
-                  <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", color: "var(--ink)", lineHeight: 1.5 }}>
-                    {stats.latestMetrica.recomendacion_ia}
-                  </p>
-                ) : (
-                  <p className="muted">Sin datos por mostrar todavía.</p>
-                )}
               </div>
             </div>
           </div>
@@ -471,29 +644,12 @@ function Dashboard() {
             </div>
 
             <div className="card">
-              <p className="stat-title">Análisis IA</p>
-              <div className="stack">
-                {isLoadingPatient ? (
-                  <p className="muted">Cargando...</p>
-                ) : stats?.latestMetrica ? (
-                  <>
-                    <div>
-                      <p className="stat-label">Adherencia</p>
-                      <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", color: "var(--ink)", lineHeight: 1.5, margin: 0 }}>
-                        {stats.latestMetrica.resumen_adherencia_ia || EMPTY}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="stat-label">Tendencia emocional</p>
-                      <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", color: "var(--ink)", lineHeight: 1.5, margin: 0 }}>
-                        {stats.latestMetrica.tendencia_emocional_ia || EMPTY}
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <p className="muted">Sin datos por mostrar todavía.</p>
-                )}
-              </div>
+              <p className="stat-title">Seguimiento diario de emociones</p>
+              {isLoadingPatient ? (
+                <p className="muted">Cargando...</p>
+              ) : (
+                <EmotionChart data={patientData?.emocionesSemanales} />
+              )}
             </div>
           </div>
 
@@ -501,12 +657,11 @@ function Dashboard() {
           <div className="grid grid--2 dashboard-tables">
             <div className="card">
               <p className="stat-title">Últimas evaluaciones</p>
-              <div className="table">
+              <div className="table table--3col">
                 <div className="table-row table-head">
                   <span>Nivel</span>
                   <span>OASIS</span>
                   <span>ODSIS</span>
-                  <span>Bienestar</span>
                 </div>
                 {isLoadingPatient ? (
                   <p className="muted">Cargando...</p>
@@ -516,7 +671,6 @@ function Dashboard() {
                       <span>Nivel {ev.nivel}</span>
                       <span>{ev.oasis_total ?? EMPTY}</span>
                       <span>{ev.odsis_total ?? EMPTY}</span>
-                      <span>{ev.bienestar_score ?? EMPTY}</span>
                     </div>
                   ))
                 ) : (
@@ -537,14 +691,16 @@ function Dashboard() {
                 {isLoadingPatient ? (
                   <p className="muted">Cargando...</p>
                 ) : patientData?.respuestas?.length ? (
-                  patientData.respuestas.map((r, i) => (
-                    <div key={i} className="table-row">
-                      <span>{r.ejercicio_codigo || EMPTY}</span>
-                      <span>{r.nivel ?? EMPTY}</span>
-                      <span>{fmtSeconds(r.duracion_segundos)}</span>
-                      <span>{fmtDate(r.completado_en)}</span>
-                    </div>
-                  ))
+                  <div className="table-body-scroll">
+                    {patientData.respuestas.map((r, i) => (
+                      <div key={i} className="table-row">
+                        <span>{r.ejercicio_codigo || EMPTY}</span>
+                        <span>{r.nivel ?? EMPTY}</span>
+                        <span>{fmtSeconds(r.duracion_segundos)}</span>
+                        <span>{fmtDate(r.completado_en)}</span>
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <p className="muted">Sin respuestas registradas.</p>
                 )}
