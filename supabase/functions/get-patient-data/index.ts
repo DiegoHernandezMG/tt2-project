@@ -44,14 +44,12 @@ serve(async (req) => {
   if (!userId) return json({ error: "userId requerido." }, 400);
 
   const now = new Date();
-  const dow = now.getUTCDay();
-  const mondayOffset = dow === 0 ? -6 : 1 - dow;
-  const monday = new Date(now);
-  monday.setUTCDate(now.getUTCDate() + mondayOffset);
-  const sunday = new Date(monday);
-  sunday.setUTCDate(monday.getUTCDate() + 6);
-  const mondayStr = monday.toISOString().slice(0, 10);
+  const sunday = new Date(now);
+  sunday.setUTCDate(now.getUTCDate() - now.getUTCDay());
+  const saturday = new Date(sunday);
+  saturday.setUTCDate(sunday.getUTCDate() + 6);
   const sundayStr = sunday.toISOString().slice(0, 10);
+  const saturdayStr = saturday.toISOString().slice(0, 10);
 
   const [
     { data: evaluaciones },
@@ -104,8 +102,8 @@ serve(async (req) => {
       .from("seguimiento_diario")
       .select("emocion_clave, emocion_etiqueta, intensidad, fecha, registrado_en")
       .eq("id_usuario", userId)
-      .gte("fecha", mondayStr)
-      .lte("fecha", sundayStr)
+      .gte("fecha", sundayStr)
+      .lte("fecha", saturdayStr)
       .order("registrado_en", { ascending: false }),
   ]);
 

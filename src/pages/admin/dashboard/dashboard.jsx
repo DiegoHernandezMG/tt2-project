@@ -50,18 +50,16 @@ const EMOTION_EMOJIS = {
   agotado: "😴",
 };
 
-const DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+const DAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 function EmotionChart({ data }) {
   const weekDates = useMemo(() => {
     const now = new Date();
-    const dow = now.getDay();
-    const offset = dow === 0 ? -6 : 1 - dow;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + offset);
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - now.getDay());
     return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
+      const d = new Date(sunday);
+      d.setDate(sunday.getDate() + i);
       return d.toISOString().slice(0, 10);
     });
   }, []);
