@@ -29,7 +29,7 @@ function Home() {
             <div className="home__panel-video-wrapper">
               <iframe
                 className="home__panel-video"
-                src="https://www.youtube.com/embed/O8AxFHXWLyg"
+                src="https://www.youtube.com/embed/52fC6bVb31k"
                 title="Video informativo SerenaMente 2.0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
