@@ -1,0 +1,2140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SerenaMente 2.0 — Implementación: Dashboard Web Administrativo</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sidebar-w: 280px;
+      --accent: #4A6FA5;
+      --accent-dark: #2d4a73;
+      --accent-light: #eaf0f9;
+      --text: #1a1a2e;
+      --muted: #5a6a7a;
+      --border: #d0dae8;
+      --bg: #f7f9fc;
+      --white: #ffffff;
+      --code-bg: #f0f4f8;
+      --table-head: #4A6FA5;
+      --table-alt: #f4f7fb;
+      --success: #2e7d32;
+      --warn: #e65100;
+    }
+
+    html { scroll-behavior: smooth; font-size: 15px; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────────── */
+    #sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: var(--sidebar-w);
+      height: 100vh;
+      overflow-y: auto;
+      background: var(--accent-dark);
+      color: #c9d8ee;
+      padding: 0 0 2rem 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #sidebar-header {
+      padding: 1.5rem 1.25rem 1.2rem;
+      background: rgba(0,0,0,0.25);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    #sidebar-header .brand {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.3;
+    }
+
+    #sidebar-header .subtitle {
+      font-size: 0.72rem;
+      color: #93b0d4;
+      margin-top: 0.3rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    #sidebar nav { padding: 1rem 0; }
+
+    #sidebar nav a {
+      display: block;
+      padding: 0.42rem 1.25rem;
+      color: #b8ccdf;
+      text-decoration: none;
+      font-size: 0.82rem;
+      line-height: 1.4;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+    }
+
+    #sidebar nav a:hover,
+    #sidebar nav a.active {
+      color: #ffffff;
+      background: rgba(255,255,255,0.08);
+      border-left-color: #7eb8f7;
+    }
+
+    #sidebar nav .nav-section {
+      padding: 0.9rem 1.25rem 0.3rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #6a90b8;
+    }
+
+    #sidebar nav a.sub { padding-left: 2rem; font-size: 0.78rem; }
+
+    /* ── Main content ────────────────────────────────────────── */
+    #main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      padding: 0;
+      min-width: 0;
+    }
+
+    .page-header {
+      background: linear-gradient(135deg, var(--accent-dark) 0%, var(--accent) 100%);
+      color: white;
+      padding: 3rem 3.5rem 2.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .page-header::after {
+      content: '';
+      position: absolute;
+      right: -60px; top: -60px;
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .page-header .chapter-tag {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      padding: 0.25rem 0.9rem;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .page-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .page-header .description {
+      margin-top: 0.75rem;
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.8);
+      max-width: 640px;
+      line-height: 1.6;
+    }
+
+    .content-body { padding: 2.5rem 3.5rem; max-width: 1000px; }
+
+    /* ── Sections ────────────────────────────────────────────── */
+    section { margin-bottom: 3rem; }
+
+    h2 {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--accent-dark);
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.25rem;
+      scroll-margin-top: 1.5rem;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin: 1.75rem 0 0.75rem;
+      scroll-margin-top: 1.5rem;
+    }
+
+    h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 1.25rem 0 0.5rem;
+      padding-left: 0.75rem;
+      border-left: 3px solid var(--accent);
+    }
+
+    p {
+      line-height: 1.75;
+      color: #2c3e50;
+      margin-bottom: 0.9rem;
+    }
+
+    ul, ol {
+      padding-left: 1.6rem;
+      margin-bottom: 0.9rem;
+    }
+
+    li { line-height: 1.7; margin-bottom: 0.2rem; }
+
+    strong { color: var(--accent-dark); }
+
+    /* ── Tables ──────────────────────────────────────────────── */
+    .table-wrapper {
+      overflow-x: auto;
+      margin: 1.25rem 0 1.75rem;
+      border-radius: 8px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      background: var(--white);
+    }
+
+    thead th {
+      background: var(--table-head);
+      color: white;
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.82rem;
+      letter-spacing: 0.03em;
+    }
+
+    tbody tr:nth-child(even) { background: var(--table-alt); }
+    tbody tr:hover { background: #ddeaf8; }
+
+    tbody td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+
+    td code, th code {
+      background: rgba(74,111,165,0.12);
+      color: var(--accent-dark);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.82em;
+      font-family: 'Consolas', 'Fira Code', monospace;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.55rem;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .badge-si { background: #fdecea; color: #c62828; }
+    .badge-no { background: #e8f5e9; color: #1b5e20; }
+    .badge-pub { background: #fff3e0; color: #e65100; }
+    .badge-auth { background: #e8eaf6; color: #283593; }
+    .badge-super { background: #f3e5f5; color: #6a1b9a; }
+    .badge-pass { background: #e8f5e9; color: #1b5e20; }
+    .badge-fail { background: #fdecea; color: #c62828; }
+    .badge-warn { background: #fff3e0; color: #e65100; }
+
+    /* ── Load test metric cards ──────────────────────────────── */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.75rem;
+      margin: 1rem 0 1.5rem;
+    }
+
+    .metric-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      text-align: center;
+    }
+
+    .metric-card .label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .metric-card .value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--accent-dark);
+    }
+
+    .metric-card .value.ok { color: #1b5e20; }
+    .metric-card .value.bad { color: #c62828; }
+    .metric-card .value.warn { color: #e65100; }
+
+    /* ── Code blocks ─────────────────────────────────────────── */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+      padding: 1.1rem 1.25rem;
+      font-family: 'Consolas', 'Fira Code', 'Courier New', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      margin: 1rem 0 1.5rem;
+      white-space: pre;
+    }
+
+    /* ── PlantUML diagrams ───────────────────────────────────── */
+    .diagram-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 1.5rem 0 2rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    }
+
+    .diagram-card-header {
+      background: linear-gradient(90deg, var(--accent) 0%, #6a9fd8 100%);
+      color: white;
+      padding: 0.65rem 1.25rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .diagram-card-header::before {
+      content: '⬡';
+      font-size: 1rem;
+    }
+
+    .diagram-card-body {
+      background: white;
+      padding: 1.5rem;
+      text-align: center;
+      min-height: 80px;
+    }
+
+    .diagram-card-body img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+
+    .diagram-loading {
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 2rem 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .diagram-error {
+      color: #c62828;
+      font-size: 0.8rem;
+      padding: 1rem;
+    }
+
+    .plantuml-source {
+      display: none;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid #d0d7e0;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Info boxes ──────────────────────────────────────────── */
+    .info-box {
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin: 1rem 0 1.5rem;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .info-box.note {
+      background: #e8f4fd;
+      border-left: 4px solid #2196f3;
+      color: #0d47a1;
+    }
+
+    .info-box.warning {
+      background: #fff8e1;
+      border-left: 4px solid #ffc107;
+      color: #e65100;
+    }
+
+    .info-box .icon { font-size: 1.2rem; flex-shrink: 0; }
+
+    /* ── Directory tree ──────────────────────────────────────── */
+    .dir-tree {
+      background: #1e2d3d;
+      color: #c9d8ee;
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      font-family: 'Consolas', 'Fira Code', monospace;
+      font-size: 0.8rem;
+      line-height: 1.8;
+      overflow-x: auto;
+      margin: 1rem 0 1.5rem;
+      white-space: pre;
+      tab-size: 2;
+    }
+
+    .dir-tree .dir { color: #7eb8f7; }
+    .dir-tree .file { color: #c9d8ee; }
+    .dir-tree .comment { color: #6a8fa8; }
+
+    /* ── JS/TS code highlight ────────────────────────────────── */
+    .code-dark {
+      background: #1e2d3d;
+      color: #c9d8ee;
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      font-family: 'Consolas', 'Fira Code', monospace;
+      font-size: 0.8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 1rem 0 1.5rem;
+    }
+
+    .code-dark .kw { color: #7eb8f7; }
+    .code-dark .type { color: #a8d8a8; }
+    .code-dark .str { color: #f0b87a; }
+    .code-dark .cmt { color: #6a8fa8; font-style: italic; }
+    .code-dark .num { color: #f9c74f; }
+
+    /* ── TOC ──────────────────────────────────────────────────── */
+    .toc-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #6a90b8;
+      padding: 1rem 1.25rem 0.4rem;
+    }
+
+    /* ── PDF / Print button ──────────────────────────────────── */
+    #btn-pdf {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1.25rem;
+      padding: 0.6rem 1.4rem;
+      background: rgba(255,255,255,0.15);
+      border: 1.5px solid rgba(255,255,255,0.5);
+      border-radius: 6px;
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      text-decoration: none;
+    }
+    #btn-pdf:hover { background: rgba(255,255,255,0.28); }
+
+    /* ── Print ───────────────────────────────────────────────── */
+    @media print {
+      #sidebar, #btn-pdf { display: none !important; }
+      #main { margin-left: 0; }
+      .content-body { padding: 1rem 2rem; max-width: 100%; }
+      .page-header { padding: 1.5rem 2rem; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .diagram-card { break-inside: avoid; page-break-inside: avoid; }
+      section { break-inside: avoid; page-break-inside: avoid; }
+      h2 { break-after: avoid; page-break-after: avoid; }
+      h3 { break-after: avoid; page-break-after: avoid; }
+      .table-wrapper { break-inside: avoid; page-break-inside: avoid; }
+      .code-dark, .dir-tree, .code-block { break-inside: avoid; page-break-inside: avoid; }
+      .diagram-loading { display: none !important; }
+    }
+
+    @page {
+      margin: 1.5cm 1.8cm;
+      size: A4;
+    }
+
+    @media (max-width: 900px) {
+      #sidebar { display: none; }
+      #main { margin-left: 0; }
+      .content-body { padding: 1.5rem; }
+      .page-header { padding: 2rem 1.5rem; }
+    }
+
+    .section-divider {
+      border: none;
+      border-top: 1px dashed var(--border);
+      margin: 2.5rem 0;
+    }
+
+    .step-list { list-style: none; padding: 0; margin: 1rem 0 1.5rem; }
+
+    .step-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 0.75rem 1rem;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 0.6rem;
+      line-height: 1.55;
+    }
+
+    .step-num {
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      width: 26px; height: 26px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 0.05rem;
+    }
+
+    .step-list li .step-content strong { display: block; margin-bottom: 0.2rem; font-size: 0.92rem; }
+    .step-list li .step-content span { font-size: 0.84rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ SIDEBAR -->
+<nav id="sidebar">
+  <div id="sidebar-header">
+    <div class="brand">SerenaMente 2.0</div>
+    <div class="subtitle">Documentación de Implementación</div>
+  </div>
+  <nav>
+    <div class="toc-title">Contenido</div>
+
+    <div class="nav-section">General</div>
+    <a href="#s1">2.1 Descripción general</a>
+    <a href="#s2">2.2 Tecnologías y dependencias</a>
+    <a href="#s3">2.3 Arquitectura</a>
+    <a href="#s3-1" class="sub">2.3.1 Estructura de carpetas</a>
+    <a href="#s3-2" class="sub">2.3.2 Capas de la aplicación</a>
+    <a href="#s3-3" class="sub">2.3.3 Enrutamiento y guards</a>
+    <a href="#s3-4" class="sub">2.3.4 Estado y autenticación</a>
+
+    <div class="nav-section">Módulos</div>
+    <a href="#s4">2.4 Web pública</a>
+    <a href="#s4-1" class="sub">2.4.1 Páginas informativas</a>
+    <a href="#s4-2" class="sub">2.4.2 Formulario de contacto</a>
+    <a href="#s4-3" class="sub">2.4.3 Verificación de correo</a>
+    <a href="#s4-4" class="sub">2.4.4 Recuperación móvil</a>
+    <a href="#s5">2.5 Autenticación admin</a>
+    <a href="#s5-1" class="sub">2.5.1 Login</a>
+    <a href="#s5-2" class="sub">2.5.2 Activación</a>
+    <a href="#s5-3" class="sub">2.5.3 Recuperación</a>
+    <a href="#s5-4" class="sub">2.5.4 Protección de rutas</a>
+    <a href="#s6">2.6 Gestión de administradores</a>
+    <a href="#s7">2.7 Dashboard de pacientes</a>
+
+    <div class="nav-section">Backend</div>
+    <a href="#s8">2.8 Modelo de datos</a>
+    <a href="#s9">2.9 Edge Functions</a>
+    <a href="#s10">2.10 Servicios cliente</a>
+
+    <div class="nav-section">Flujo</div>
+    <a href="#s11">2.11 Flujo general del sistema</a>
+
+    <div class="nav-section">Pruebas</div>
+    <a href="#s12">2.12 Pruebas de carga y rendimiento</a>
+    <a href="#s12-1" class="sub">2.12.1 Metodología</a>
+    <a href="#s12-2" class="sub">2.12.2 Prueba 1 — Edge function</a>
+    <a href="#s12-3" class="sub">2.12.3 Prueba 2 — Login simultáneo</a>
+    <a href="#s12-4" class="sub">2.12.4 Prueba 3 — Flujo autenticado</a>
+    <a href="#s12-5" class="sub">2.12.5 Prueba 4 — Páginas públicas</a>
+    <a href="#s12-6" class="sub">2.12.6 Resumen y conclusión</a>
+  </nav>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════ MAIN -->
+<div id="main">
+
+  <div class="page-header">
+    <div class="chapter-tag">Capítulo de Implementación · Subsistema 2</div>
+    <h1>Dashboard Web Administrativo</h1>
+    <p class="description">
+      Documentación técnica detallada del sistema web de SerenaMente 2.0 — sitio
+      informativo público y dashboard administrativo para psicólogos — desarrollado
+      con React 19 y Vite, respaldado por Supabase (PostgreSQL, Auth y Edge Functions).
+    </p>
+    <button id="btn-pdf" onclick="exportarPDF()">
+      ⬇ Exportar a PDF
+    </button>
+  </div>
+
+  <div class="content-body">
+
+    <!-- ══════════════ 2.1 Descripción general -->
+    <section id="s1">
+      <h2>2.1 Descripción general</h2>
+      <p>
+        El sistema web de SerenaMente 2.0 cumple dos funciones complementarias dentro del ecosistema.
+        En primer lugar, expone un <strong>sitio público informativo</strong> dirigido a usuarios potenciales,
+        donde se describe el programa, se invita a descargar la aplicación móvil mediante un código QR
+        y se ofrece un formulario de contacto. En segundo lugar, integra un <strong>dashboard administrativo</strong>
+        privado dirigido al equipo clínico que da seguimiento al avance terapéutico de los pacientes registrados en la app móvil.
+      </p>
+      <p>
+        La aplicación está construida como una <em>Single Page Application</em> con
+        <strong>React 19</strong> y <strong>Vite 7</strong>, desplegada en <strong>Vercel</strong>, y consume
+        directamente los servicios de <strong>Supabase</strong> (autenticación, base de datos PostgreSQL y siete
+        Edge Functions escritas en TypeScript sobre Deno). Las operaciones que requieren privilegios elevados
+        — envío de correos, creación de usuarios en Auth, agregación de datos clínicos o eliminación cascada —
+        se delegan a Edge Functions, mientras que las consultas de lectura tabular se realizan directamente
+        desde el cliente mediante el SDK oficial.
+      </p>
+      <div class="info-box note">
+        <span class="icon">ℹ️</span>
+        <span>El dashboard administrativo y la aplicación móvil <em>comparten la misma base de datos</em> en
+        Supabase. El subsistema 2 únicamente lee y opera sobre los datos generados por la app móvil; no posee
+        flujos terapéuticos propios.</span>
+      </div>
+    </section>
+
+    <hr class="section-divider" />
+
+    <!-- ══════════════ 2.2 Tecnologías -->
+    <section id="s2">
+      <h2>2.2 Tecnologías y dependencias</h2>
+      <p>
+        La Tabla 1 describe las dependencias principales del proyecto y la justificación de su selección.
+      </p>
+      <p><strong>Tabla 1.</strong> Dependencias principales del dashboard web</p>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Paquete</th>
+              <th>Versión</th>
+              <th>Función</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>react</code> / <code>react-dom</code></td><td>^19.2.0</td><td>Librería principal de la interfaz; renderizado declarativo y manejo de estado local</td></tr>
+            <tr><td><code>react-router-dom</code></td><td>^7.13.0</td><td>Enrutamiento declarativo SPA con rutas anidadas y redirecciones</td></tr>
+            <tr><td><code>@supabase/supabase-js</code></td><td>^2.91.1</td><td>Cliente oficial de Supabase: autenticación, consultas PostgreSQL y llamadas a Edge Functions</td></tr>
+            <tr><td><code>xlsx</code></td><td>^0.18.5</td><td>Generación de archivos Excel (<code>.xlsx</code>) para exportar datos clínicos de pacientes</td></tr>
+            <tr><td><code>vite</code></td><td>^7.2.4</td><td>Bundler y servidor de desarrollo con HMR; compila la SPA para producción</td></tr>
+            <tr><td><code>@vitejs/plugin-react</code></td><td>^5.1.1</td><td>Soporte oficial de React (JSX y Fast Refresh) para Vite</td></tr>
+            <tr><td><code>eslint</code></td><td>^9.39.1</td><td>Análisis estático del código JavaScript; reglas para React Hooks y Refresh</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Servicios externos</h3>
+      <p>
+        Además de las dependencias instaladas como paquetes npm, el sistema depende de tres servicios externos
+        contratados como SaaS:
+      </p>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Servicio</th>
+              <th>Función</th>
+              <th>Integración</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Supabase</strong></td><td>Backend completo: PostgreSQL, Auth y runtime Deno para Edge Functions</td><td>SDK <code>@supabase/supabase-js</code> y <code>fetch</code> a <code>/functions/v1/&lt;nombre&gt;</code></td></tr>
+            <tr><td><strong>Resend</strong></td><td>Envío de correos transaccionales (invitación, recuperación, contacto y verificación)</td><td><code>POST</code> a <code>https://api.resend.com/emails</code> desde las Edge Functions</td></tr>
+            <tr><td><strong>Vercel</strong></td><td>Hosting estático del bundle generado por Vite y resolución de rutas SPA</td><td><code>vercel.json</code> con regla de <em>rewrite</em> hacia <code>/index.html</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Variables de entorno</h3>
+      <p>
+        El cliente lee dos variables expuestas por Vite con el prefijo <code>VITE_</code>:
+      </p>
+      <div class="code-block">VITE_ADMIN_SUPABASE_URL=https://&lt;proyecto&gt;.supabase.co
+VITE_ADMIN_SUPABASE_ANON_KEY=&lt;anon-key&gt;</div>
+      <p>
+        Las Edge Functions, por su parte, dependen de <code>SUPABASE_URL</code>, <code>SERVICE_ROLE_KEY</code>
+        y <code>RESEND_API_KEY</code> configuradas como secretos del proyecto Supabase.
+      </p>
+    </section>
+
+    <hr class="section-divider" />
+
+    <!-- ══════════════ 2.3 Arquitectura -->
+    <section id="s3">
+      <h2>2.3 Arquitectura del proyecto</h2>
+
+      <h3 id="s3-1">2.3.1 Estructura de carpetas</h3>
+      <p>
+        El código fuente del cliente se organiza dentro de <code>src/</code> siguiendo una
+        <strong>arquitectura por capas con páginas agrupadas por audiencia</strong>: una rama pública
+        (<code>pages/public/</code>) y una rama privada (<code>pages/admin/</code>). Los servicios
+        que encapsulan acceso a datos se aíslan en <code>services/</code>, las utilidades de
+        infraestructura compartida en <code>lib/</code> y los hooks transversales en <code>hooks/</code>.
+        El backend serverless se encuentra desacoplado en <code>supabase/functions/</code>.
+      </p>
+
+      <div class="dir-tree">
+<span class="dir">tt2-project/</span>
+├── <span class="file">index.html</span>                       <span class="comment"># Punto de montaje de la SPA</span>
+├── <span class="file">vite.config.js</span>                   <span class="comment"># Configuración de Vite con plugin React</span>
+├── <span class="file">vercel.json</span>                      <span class="comment"># Reescritura /(.*) → /index.html para rutas SPA</span>
+├── <span class="file">eslint.config.js</span>
+├── <span class="dir">public/</span>                          <span class="comment"># Activos estáticos servidos sin procesar</span>
+├── <span class="dir">src/</span>
+│   ├── <span class="file">main.jsx</span>                     <span class="comment"># Bootstrap: renderiza &lt;App&gt; envuelto en &lt;AuthProvider&gt;</span>
+│   ├── <span class="dir">app/</span>
+│   │   ├── <span class="file">app.jsx</span>                  <span class="comment"># Componente raíz; devuelve &lt;Router /&gt;</span>
+│   │   └── <span class="file">router.jsx</span>               <span class="comment"># Definición de rutas y guards (BrowserRouter)</span>
+│   ├── <span class="dir">lib/</span>
+│   │   └── <span class="file">supabase-admin.js</span>        <span class="comment"># Cliente Supabase singleton con storageKey propio</span>
+│   ├── <span class="dir">hooks/</span>
+│   │   └── <span class="file">use-auth.js</span>              <span class="comment"># AuthContext + useAuth() (perfil + estado de sesión)</span>
+│   ├── <span class="dir">constants/</span>
+│   │   └── <span class="file">admin.js</span>                 <span class="comment"># Enums ADMIN_ROLES y ADMIN_STATUS</span>
+│   ├── <span class="dir">services/</span>
+│   │   ├── <span class="file">admin-users.js</span>           <span class="comment"># CRUD de administradores e invitaciones</span>
+│   │   └── <span class="file">dashboard.js</span>             <span class="comment"># Consultas de pacientes y agregaciones</span>
+│   ├── <span class="dir">components/</span>
+│   │   ├── <span class="file">protected-route.jsx</span>      <span class="comment"># Guard de rutas privadas (rol + status)</span>
+│   │   ├── <span class="dir">navbar/</span>                  <span class="comment"># Barra superior del sitio público</span>
+│   │   ├── <span class="dir">footer/</span>
+│   │   └── <span class="dir">admin-topbar/</span>            <span class="comment"># Topbar contextual del dashboard</span>
+│   ├── <span class="dir">layouts/</span>
+│   │   └── <span class="file">public-layout.jsx</span>        <span class="comment"># Layout Navbar + main + Footer para páginas públicas</span>
+│   ├── <span class="dir">pages/</span>
+│   │   ├── <span class="dir">public/</span>                  <span class="comment"># home, about, start, faq, mobile-verify-email, mobile-reset-password</span>
+│   │   └── <span class="dir">admin/</span>                   <span class="comment"># login, activate, reset-password, dashboard, users, profile</span>
+│   ├── <span class="dir">data/</span>
+│   │   └── <span class="file">serenamente.json</span>         <span class="comment"># Contenido estático (FAQ, descripciones, etc.)</span>
+│   ├── <span class="dir">assets/</span>                      <span class="comment"># Imágenes y logos</span>
+│   └── <span class="dir">styles/</span>
+│       └── <span class="file">global.css</span>               <span class="comment"># Variables CSS y estilos base</span>
+└── <span class="dir">supabase/</span>
+    └── <span class="dir">functions/</span>
+        ├── <span class="dir">activate-admin-account/</span>
+        ├── <span class="dir">send-invitation-email/</span>
+        ├── <span class="dir">send-reset-email/</span>
+        ├── <span class="dir">send-verification-email/</span>
+        ├── <span class="dir">send-contact-email/</span>
+        ├── <span class="dir">get-patient-data/</span>
+        └── <span class="dir">delete-patient/</span>
+      </div>
+
+      <h3 id="s3-2">2.3.2 Capas de la aplicación</h3>
+      <p>
+        El cliente separa responsabilidades en cuatro capas bien definidas:
+      </p>
+      <ul>
+        <li><strong>Capa de presentación</strong> (<code>pages/</code>, <code>components/</code>, <code>layouts/</code>): componentes funcionales que renderizan la UI y delegan toda la lógica de acceso a datos a la capa de servicios.</li>
+        <li><strong>Capa de servicios</strong> (<code>services/</code>): funciones puras asíncronas que encapsulan llamadas al SDK de Supabase y a las Edge Functions. Cada función expone una promesa con datos normalizados o lanza una excepción descriptiva.</li>
+        <li><strong>Capa de infraestructura</strong> (<code>lib/</code>, <code>hooks/</code>): cliente Supabase singleton, hook de autenticación (<code>useAuth</code>) y constantes de dominio.</li>
+        <li><strong>Capa de backend serverless</strong> (<code>supabase/functions/</code>): siete Edge Functions Deno que ejecutan operaciones con privilegios elevados o integraciones con servicios externos (Resend).</li>
+      </ul>
+
+      <div class="diagram-card">
+        <div class="diagram-card-header">Diagrama de Componentes — Arquitectura del Dashboard Web</div>
+        <div class="diagram-card-body">
+          <div class="diagram-loading"><span class="spinner"></span> Generando diagrama…</div>
+          <pre class="plantuml-source">@startuml Arquitectura_Dashboard_Web
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam roundCorner 8
+skinparam component {
+  BackgroundColor #EAF0F9
+  BorderColor #4A6FA5
+  FontColor #1a1a2e
+}
+skinparam package {
+  BackgroundColor #F7F9FC
+  BorderColor #2d4a73
+  FontColor #2d4a73
+}
+
+actor "Visitante" as V
+actor "Administrador\n(psicólogo)" as A
+
+package "Cliente Web (React 19 + Vite)" {
+  [PublicLayout\n(Navbar + Footer)] as PUB
+  [AdminTopbar] as TOP
+  [Router\n(react-router-dom)] as ROUTER
+  [AuthProvider\n(useAuth)] as AUTH
+  [ProtectedRoute] as GUARD
+  [services/admin-users.js] as SVCA
+  [services/dashboard.js] as SVCD
+  [lib/supabase-admin.js] as SDK
+}
+
+package "Supabase (BaaS)" {
+  [Supabase Auth] as SBA
+  database "PostgreSQL" as DB
+  package "Edge Functions (Deno)" {
+    [activate-admin-account] as F1
+    [send-invitation-email] as F2
+    [send-reset-email] as F3
+    [send-verification-email] as F4
+    [send-contact-email] as F5
+    [get-patient-data] as F6
+    [delete-patient] as F7
+  }
+}
+
+cloud "Resend API\n(correo transaccional)" as RES
+cloud "Vercel\n(hosting estático)" as VER
+
+V --> PUB : HTTPS
+A --> TOP : HTTPS
+PUB --> ROUTER
+TOP --> ROUTER
+ROUTER --> GUARD
+GUARD --> AUTH
+AUTH --> SDK
+SVCA --> SDK
+SVCD --> SDK
+SDK --> SBA
+SDK --> DB
+SVCA ..> F1 : fetch
+SVCA ..> F2 : fetch
+SVCA ..> F3 : fetch
+SVCD ..> F6 : fetch
+SVCD ..> F7 : fetch
+F1 --> SBA
+F1 --> DB
+F2 --> RES
+F3 --> RES
+F4 --> RES
+F5 --> RES
+F6 --> DB
+F7 --> DB
+VER ..> PUB : sirve bundle
+@enduml</pre>
+        </div>
+      </div>
+
+      <h3 id="s3-3">2.3.3 Enrutamiento y guards</h3>
+      <p>
+        El enrutamiento se define en <code>src/app/router.jsx</code> mediante <code>BrowserRouter</code>. Las
+        rutas públicas se envuelven en <code>PublicLayout</code> (que aporta navbar y footer),
+        las rutas administrativas privadas se protegen con el componente <code>ProtectedRoute</code> y la ruta
+        comodín <code>*</code> redirige a <code>/</code>. La Tabla 2 enumera todas las rutas expuestas por la SPA.
+      </p>
+      <p><strong>Tabla 2.</strong> Rutas registradas en <code>router.jsx</code></p>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Ruta</th>
+              <th>Componente</th>
+              <th>Acceso</th>
+              <th>Propósito</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>/</code></td><td><code>Home</code></td><td><span class="badge badge-pub">Público</span></td><td>Página principal con descripción del programa y aliados</td></tr>
+            <tr><td><code>/nosotros</code></td><td><code>About</code></td><td><span class="badge badge-pub">Público</span></td><td>Equipo de trabajo e información institucional</td></tr>
+            <tr><td><code>/comenzar</code></td><td><code>Start</code></td><td><span class="badge badge-pub">Público</span></td><td>Pasos para descargar la app móvil + QR</td></tr>
+            <tr><td><code>/faq</code></td><td><code>FAQ</code></td><td><span class="badge badge-pub">Público</span></td><td>Preguntas frecuentes y formulario de contacto</td></tr>
+            <tr><td><code>/mobile-verify-email</code></td><td><code>MobileVerifyEmailPage</code></td><td><span class="badge badge-pub">Público</span></td><td>Confirmación de correo para usuarios de la app móvil</td></tr>
+            <tr><td><code>/mobile-reset-password</code></td><td><code>MobileResetPasswordPage</code></td><td><span class="badge badge-pub">Público</span></td><td>Recuperación de contraseña para usuarios de la app móvil</td></tr>
+            <tr><td><code>/admin/login</code></td><td><code>Login</code></td><td><span class="badge badge-pub">Público</span></td><td>Inicio de sesión del personal administrativo</td></tr>
+            <tr><td><code>/admin/activate</code></td><td><code>ActivatePage</code></td><td><span class="badge badge-pub">Público</span></td><td>Establecer contraseña inicial al aceptar una invitación</td></tr>
+            <tr><td><code>/admin/reset-password</code></td><td><code>ResetPasswordPage</code></td><td><span class="badge badge-pub">Público</span></td><td>Establecer una nueva contraseña tras recibir el enlace</td></tr>
+            <tr><td><code>/admin/profile</code></td><td><code>ProfilePage</code></td><td><span class="badge badge-auth">ADMIN activo</span></td><td>Edición del perfil del administrador autenticado</td></tr>
+            <tr><td><code>/admin/dashboard</code></td><td><code>Dashboard</code></td><td><span class="badge badge-auth">ADMIN activo</span></td><td>Listado de pacientes, datos clínicos y exportación</td></tr>
+            <tr><td><code>/admin/users</code></td><td><code>UsersPage</code></td><td><span class="badge badge-super">SUPER_ADMIN</span></td><td>Gestión de administradores y bitácora de auditoría</td></tr>
+            <tr><td><code>*</code></td><td><code>Navigate("/")</code></td><td>—</td><td>Redirección por defecto para rutas inexistentes</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="s3-4">2.3.4 Estado y autenticación</h3>
+      <p>
+        La gestión del estado de sesión se centraliza en <code>AuthProvider</code> (definido en
+        <code>src/hooks/use-auth.js</code>) mediante el API de Context de React. Al montarse, el provider:
+      </p>
+      <ol>
+        <li>Llama a <code>adminSupabase.auth.getUser()</code> para recuperar la sesión actual desde el almacenamiento local del navegador (con <code>storageKey: "serenamente-admin-auth"</code>).</li>
+        <li>Si existe un usuario, invoca <code>getCurrentAdminProfile()</code> para validar la fila correspondiente en la tabla <code>admins</code> y derivar el estado (<code>ACTIVE</code>, <code>INVITED_PENDING</code> o <code>SUSPENDED</code>).</li>
+        <li>Suscribe el listener <code>onAuthStateChange</code> para reaccionar a inicios y cierres de sesión en otras pestañas o tras una redirección OAuth.</li>
+      </ol>
+      <p>
+        El hook <code>useAuth()</code> expone los valores <code>user</code>, <code>profile</code>,
+        <code>loading</code> y <code>refreshProfile</code> a cualquier componente descendiente. La
+        gestión de estado local de páginas y formularios se realiza con <code>useState</code> y
+        <code>useMemo</code> sin librería adicional.
+      </p>
+    </section>
+
+    <hr class="section-divider" />
+
+    <!-- ══════════════ 2.4 Web pública -->
+    <section id="s4">
+      <h2>2.4 Web pública</h2>
+      <p>
+        Las páginas públicas comparten el layout <code>PublicLayout</code>, que renderiza la
+        <code>Navbar</code> (logo + enlaces a Inicio, Nosotros, Comenzar, Dudas y un botón de
+        acceso administrativo) y el <code>Footer</code>. La navegación móvil utiliza un
+        <em>drawer</em> lateral montado vía <code>createPortal</code> sobre <code>document.body</code>.
+      </p>
+
+      <h3 id="s4-1">2.4.1 Páginas informativas</h3>
+      <p>
+        Las páginas <code>Home</code>, <code>About</code> y <code>Start</code> son estáticas y se
+        basan en composición de componentes con CSS por módulo.
+        <code>Home</code> incrusta un video institucional desde YouTube y los logos de las
+        instituciones colaboradoras (SUAyED, LabPSIIT, UNAM, ESCOM, IPN).
+        <code>Start</code> guía al usuario a través de tres pasos para descargar la aplicación
+        Android y muestra el código QR de descarga.
+      </p>
+
+      <h3 id="s4-2">2.4.2 Formulario de contacto</h3>
+      <p>
+        La página <code>FAQ</code> incluye un acordeón con las preguntas frecuentes y un formulario
+        de contacto con tres campos: <code>nombre</code>, <code>email</code> y <code>mensaje</code>.
+        Al enviarse, el cliente hace <code>POST</code> a la Edge Function
+        <code>send-contact-email</code>, la cual valida los campos y reenvía la solicitud al servicio
+        Resend para entregar el mensaje en la cuenta institucional
+        <code>serenamente@iztacala.unam.mx</code>.
+      </p>
+
+      <h3 id="s4-3">2.4.3 Verificación de correo (app móvil)</h3>
+      <p>
+        La ruta <code>/mobile-verify-email</code> es el destino al que apunta el enlace mágico
+        emitido por la Edge Function <code>send-verification-email</code> cuando un usuario crea su
+        cuenta desde la app móvil. La página escucha el evento <code>SIGNED_IN</code> de Supabase,
+        cierra la sesión inmediatamente (la app móvil mantendrá su propio token) y muestra una
+        confirmación visual. Si transcurren ocho segundos sin recibir el evento, se renderiza un
+        mensaje de enlace expirado.
+      </p>
+
+      <h3 id="s4-4">2.4.4 Recuperación de contraseña (app móvil)</h3>
+      <p>
+        La ruta <code>/mobile-reset-password</code> recibe el token de recuperación generado por la
+        Edge Function <code>send-reset-email</code>. La página espera al evento
+        <code>PASSWORD_RECOVERY</code> o <code>SIGNED_IN</code> para habilitar el formulario, valida
+        que la nueva contraseña tenga al menos ocho caracteres y coincida con la confirmación,
+        invoca <code>auth.updateUser({ password })</code> y cierra la sesión web una vez actualizada.
+      </p>
+    </section>
+
+    <hr class="section-divider" />
+
+    <!-- ══════════════ 2.5 Autenticación admin -->
+    <section id="s5">
+      <h2>2.5 Autenticación y control de acceso administrativo</h2>
+
+      <h3 id="s5-1">2.5.1 Inicio de sesión</h3>
+      <p>
+        La página <code>Login</code> ofrece un formulario clásico de correo y contraseña. El handler
+        <code>handleLogin</code> implementa un <em>timeout</em> defensivo de doce segundos sobre
+        <code>signInWithPassword</code> y un segundo timeout de diez segundos sobre la consulta del
+        perfil. Tras autenticarse, el flujo verifica que el correo exista en la tabla
+        <code>admins</code> y que su estado sea <code>ACTIVE</code>; cualquier otra combinación cierra
+        la sesión y muestra un mensaje específico. Finalmente, <code>registerLoginEvent</code>
+        actualiza <code>last_login_at</code> y registra un evento <code>LOGIN_SUCCESS</code> en
+        <code>audit_logs</code>, y el flujo redirige a <code>/admin/users</code> si el rol es
+        <code>SUPER_ADMIN</code> o a <code>/admin/dashboard</code> en cualquier otro caso.
+      </p>
+
+      <div class="diagram-card">
+        <div class="diagram-card-header">Diagrama de Secuencia — Inicio de sesión administrativo</div>
+        <div class="diagram-card-body">
+          <div class="diagram-loading"><span class="spinner"></span> Generando diagrama…</div>
+          <pre class="plantuml-source">@startuml Flujo_Login_Admin
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4A6FA5
+  LifeLineBorderColor #2d4a73
+  ParticipantBorderColor #4A6FA5
+  ParticipantBackgroundColor #EAF0F9
+  ParticipantFontColor #1a1a2e
+  ActorBorderColor #4A6FA5
+  ActorBackgroundColor #EAF0F9
+}
+
+actor "Administrador" as A
+participant "LoginPage" as L
+participant "adminSupabase\n.auth" as AUTH
+participant "getCurrentAdminProfile" as P
+participant "tabla admins" as T
+participant "registerLoginEvent" as R
+participant "audit_logs" as AL
+
+A -> L : ingresa correo y contraseña
+L -> AUTH : signInWithPassword(email, password)
+AUTH --> L : { user, session } | error
+alt credenciales inválidas
+  L --> A : muestra error
+else credenciales válidas
+  L -> P : getCurrentAdminProfile(user)
+  P -> T : SELECT * WHERE username = email
+  T --> P : row
+  P --> L : { role, status }
+  alt status != ACTIVE
+    L -> AUTH : signOut()
+    L --> A : "cuenta no activa"
+  else status = ACTIVE
+    L -> R : registerLoginEvent(user)
+    R -> T : UPDATE last_login_at, auth_user_id
+    R -> AL : INSERT action=LOGIN_SUCCESS
+    L --> A : redirige por rol
+  end
+end
+@enduml</pre>
+        </div>
+      </div>
+
+      <h3 id="s5-2">2.5.2 Activación de cuenta</h3>
+      <p>
+        Cuando un SUPER_ADMIN invita a un nuevo administrador, el cliente inserta una fila en
+        <code>admins</code> con <code>is_active = false</code> y dispara la Edge Function
+        <code>send-invitation-email</code>, la cual envía un correo con un enlace del tipo
+        <code>/admin/activate?email=&lt;encoded&gt;</code>. La página
+        <code>ActivatePage</code> permite al invitado fijar una contraseña (mínimo ocho
+        caracteres) y la envía a la Edge Function <code>activate-admin-account</code>, que crea
+        el usuario en Supabase Auth (o actualiza su contraseña si ya existía) y marca el
+        registro como <code>is_active = true</code> con su <code>auth_user_id</code> definitivo.
+      </p>
+
+      <div class="diagram-card">
+        <div class="diagram-card-header">Diagrama de Secuencia — Invitación y activación de cuenta admin</div>
+        <div class="diagram-card-body">
+          <div class="diagram-loading"><span class="spinner"></span> Generando diagrama…</div>
+          <pre class="plantuml-source">@startuml Flujo_Invitacion_Activacion
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4A6FA5
+  LifeLineBorderColor #2d4a73
+  ParticipantBorderColor #4A6FA5
+  ParticipantBackgroundColor #EAF0F9
+  ActorBorderColor #4A6FA5
+  ActorBackgroundColor #EAF0F9
+}
+
+actor "SUPER_ADMIN" as SA
+participant "UsersPage" as U
+participant "inviteAdminUser" as INV
+participant "tabla admins" as T
+participant "send-invitation-email" as EF1
+participant "Resend" as RES
+actor "Invitado" as I
+participant "ActivatePage" as ACT
+participant "activate-admin-account" as EF2
+participant "Supabase Auth" as AU
+
+SA -> U : completa nombre, correo, rol
+U -> INV : inviteAdminUser(...)
+INV -> T : SELECT username (existe?)
+INV -> T : INSERT id, nombre, apellido, role, is_active=false
+INV -> EF1 : POST { email, fullName, activationLink }
+EF1 -> RES : POST /emails
+RES --> I : correo con enlace
+I -> ACT : abre /admin/activate?email=...
+I -> ACT : escribe contraseña
+ACT -> EF2 : POST { email, password }
+EF2 -> AU : auth.admin.createUser({email, password})
+alt usuario inexistente
+  AU --> EF2 : { user.id }
+else usuario ya existía
+  EF2 -> AU : auth.admin.updateUserById(id, { password })
+end
+EF2 -> T : UPDATE is_active=true, auth_user_id
+EF2 --> ACT : { success: true, userId }
+ACT --> I : "cuenta activada"
+@enduml</pre>
+        </div>
+      </div>
+
+      <h3 id="s5-3">2.5.3 Recuperación de contraseña</h3>
+      <p>
+        El propio formulario de login expone un modo "¿Olvidaste tu contraseña?" que envía el
+        correo a la Edge Function <code>send-reset-email</code>. Esa función genera un enlace
+        mágico de recuperación con <code>supabaseAdmin.auth.admin.generateLink</code>, lo
+        encapsula en una plantilla HTML y lo envía vía Resend con el destino
+        <code>redirectTo</code> apuntando a <code>/admin/reset-password</code>. La página
+        <code>ResetPasswordPage</code> espera el evento <code>PASSWORD_RECOVERY</code> y
+        permite establecer la nueva contraseña.
+      </p>
+      <div class="info-box note">
+        <span class="icon">ℹ️</span>
+        <span>Por seguridad, el formulario siempre muestra el mensaje "si el correo está registrado
+        recibirás un enlace" — sin importar si la dirección existe o no — para evitar
+        enumeración de cuentas.</span>
+      </div>
+
+      <h3 id="s5-4">2.5.4 Protección de rutas</h3>
+      <p>
+        El componente <code>ProtectedRoute</code> envuelve a las rutas privadas y aplica tres
+        verificaciones antes de renderizar a los hijos:
+      </p>
+      <ul>
+        <li>Mientras <code>loading</code> esté activo, muestra el mensaje "Cargando…" en lugar de redirigir prematuramente.</li>
+        <li>Si no existe <code>user</code>, redirige a <code>/admin/login</code>.</li>
+        <li>Si <code>requireActive</code> está habilitado (valor por defecto) y el <code>profile.status</code> no es <code>ACTIVE</code>, redirige también al login.</li>
+        <li>Si se especifica <code>allowedRoles</code> y el rol del usuario no pertenece al arreglo, se redirige al dashboard de pacientes.</li>
+      </ul>
+      <div class="code-dark"><span class="kw">function</span> ProtectedRoute({ children, allowedRoles = <span class="kw">null</span>, requireActive = <span class="kw">true</span> }) {
+  <span class="kw">const</span> { user, profile, loading } = useAuth();
+  <span class="kw">if</span> (loading) <span class="kw">return</span> &lt;p&gt;Cargando...&lt;/p&gt;;
+  <span class="kw">if</span> (!user) <span class="kw">return</span> &lt;Navigate to=<span class="str">"/admin/login"</span> /&gt;;
+  <span class="kw">if</span> (requireActive &amp;&amp; profile?.status !== ADMIN_STATUS.ACTIVE) {
+    <span class="kw">return</span> &lt;Navigate to=<span class="str">"/admin/login"</span> replace /&gt;;
+  }
+  <span class="kw">if</span> (Array.isArray(allowedRoles) &amp;&amp; allowedRoles.length &gt; 0
+      &amp;&amp; !allowedRoles.includes(profile?.role)) {
+    <span class="kw">return</span> &lt;Navigate to=<span class="str">"/admin/dashboard"</span> replace /&gt;;
+  }
+  <span class="kw">return</span> children;
+}</div>
+    </section>
+
+    <hr class="section-divider" />
+
+    <!-- ══════════════ 2.6 Gestión de admins -->
+    <section id="s6">
+      <h2>2.6 Gestión de administradores</h2>
+      <p>
+        La ruta <code>/admin/users</code> — accesible únicamente para SUPER_ADMIN — concentra todas
+        las operaciones de gobierno sobre las cuentas administrativas. La página consume el
+        servicio <code>admin-users.js</code>, que expone las funciones descritas en la Tabla 3.
+      </p>
+      <p><strong>Tabla 3.</strong> Operaciones expuestas por <code>services/admin-users.js</code></p>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Función</th>
+              <th>Acción</th>
+              <th>Permiso</th>
+              <th>Evento auditoría</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>listAdminUsers</code></td><td>Lista cuentas con búsqueda y orden por fecha de creación</td><td><span class="badge badge-auth">ADMIN+</span></td><td>—</td></tr>
+            <tr><td><code>inviteAdminUser</code></td><td>Inserta fila <code>is_active=false</code> y envía correo de activación</td><td><span class="badge badge-super">SUPER_ADMIN para invitar a SUPER_ADMIN</span></td><td><code>INVITE_SENT</code></td></tr>
+            <tr><td><code>resendInvitationEmail</code></td><td>Reenvía el correo de activación a una cuenta pendiente</td><td><span class="badge badge-super">SUPER_ADMIN</span></td><td>—</td></tr>
+            <tr><td><code>activateAdminInvitation</code></td><td>Convierte una invitación en cuenta activa con contraseña</td><td><span class="badge badge-pub">Público (token)</span></td><td><code>INVITE_ACTIVATED</code></td></tr>
+            <tr><td><code>suspendAdminUser</code></td><td>Marca <code>is_active=false</code> sobre un ADMIN existente</td><td><span class="badge badge-super">SUPER_ADMIN</span></td><td><code>ADMIN_SUSPENDED</code></td></tr>
+            <tr><td><code>reactivateAdminUser</code></td><td>Restaura <code>is_active=true</code> en una cuenta suspendida</td><td><span class="badge badge-super">SUPER_ADMIN</span></td><td><code>ADMIN_REACTIVATED</code></td></tr>
+            <tr><td><code>deleteAdminUser</code></td><td>Elimina la fila de <code>admins</code> con rol ADMIN</td><td><span class="badge badge-super">SUPER_ADMIN</span></td><td><code>ADMIN_DELETED</code></td></tr>
+            <tr><td><code>listAuditLogs</code></td><td>Recupera los últimos <em>N</em> eventos de la bitácora</td><td><span class="badge badge-super">SUPER_ADMIN</span></td><td>—</td></tr>
+            <tr><td><code>getCurrentAdminProfile</code></td><td>Carga el perfil admin para el usuario de Supabase Auth</td><td><span class="badge badge-auth">Usuario autenticado</span></td><td>—</td></tr>
+            <tr><td><code>updateAdminProfile</code></td><td>Actualiza nombre y apellido del administrador</td><td><span class="badge badge-auth">Propietario</span></td><td>—</td></tr>
+            <tr><td><code>registerLoginEvent</code></td><td>Persiste <code>last_login_at</code> y registra <code>LOGIN_SUCCESS</code></td><td><span class="badge badge-auth">Autenticado</span></td><td><code>LOGIN_SUCCESS</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Todas las mutaciones que requieren elevar privilegios delegan la verificación final del
+        rol del solicitante a la lectura previa de la fila <code>admins</code> antes de ejecutar
+        el cambio, complementando las políticas RLS configuradas en Supabase. Cada acción
+        relevante se anexa a <code>audit_logs</code> mediante la utilidad interna
+        <code>appendAuditLog</code>, lo que alimenta la bitácora visible en la propia página.
+      </p>
+    </section>
+
+    <hr class="section-divider" />
+
+    <!-- ══════════════ 2.7 Dashboard -->
+    <section id="s7">
+      <h2>2.7 Dashboard de pacientes</h2>
+      <p>
+        La ruta <code>/admin/dashboard</code> es la pantalla principal del subsistema. Al cargar,
+        el servicio <code>listDashboardProfiles</code> consulta la tabla <code>perfiles</code> y
+        excluye los <code>id_usuario</code> presentes en <code>admins</code> (para que los propios
+        administradores no aparezcan listados como pacientes). El usuario puede seleccionar a
+        un paciente del listado lateral; al hacerlo, el dashboard llama a
+        <code>getPatientData</code>, que delega en la Edge Function <code>get-patient-data</code>.
+      </p>
+
+      <h3>Datos agregados por paciente</h3>
+      <p>
+        La Edge Function consolida en paralelo siete consultas SQL sobre tablas clínicas y
+        devuelve un objeto único con: evaluaciones inter-nivel (OASIS y ODSIS), progreso por
+        nivel de intervención, ejercicios completados, métricas calculadas por IA del último
+        nivel, total acumulado de accesos, registro de sesión final y emociones de la semana en
+        curso. El componente <code>EmotionChart</code> renderiza una gráfica de barras propia
+        con CSS para visualizar la intensidad emocional diaria.
+      </p>
+
+      <div class="diagram-card">
+        <div class="diagram-card-header">Diagrama de Secuencia — Consulta de datos clínicos de un paciente</div>
+        <div class="diagram-card-body">
+          <div class="diagram-loading"><span class="spinner"></span> Generando diagrama…</div>
+          <pre class="plantuml-source">@startuml Flujo_Consulta_Paciente
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4A6FA5
+  LifeLineBorderColor #2d4a73
+  ParticipantBorderColor #4A6FA5
+  ParticipantBackgroundColor #EAF0F9
+  ActorBorderColor #4A6FA5
+  ActorBackgroundColor #EAF0F9
+}
+
+actor "ADMIN" as A
+participant "Dashboard" as D
+participant "getPatientData" as G
+participant "Edge Function\nget-patient-data" as EF
+participant "Supabase Auth" as AU
+participant "PostgreSQL" as DB
+
+A -> D : selecciona paciente
+D -> G : getPatientData(userId)
+G -> EF : POST /functions/v1/get-patient-data\nAuthorization: Bearer &lt;token&gt;
+EF -> AU : auth.getUser(token)
+AU --> EF : { user }
+EF -> DB : SELECT is_active FROM admins WHERE auth_user_id = ...
+DB --> EF : { is_active }
+alt admin inactivo o sin token
+  EF --> G : 401/403 { error }
+else admin activo
+  par consultas paralelas
+    EF -> DB : SELECT evaluaciones_internivel
+  also
+    EF -> DB : SELECT intervencion_niveles_progreso
+  also
+    EF -> DB : SELECT intervencion_ejercicios_respuestas
+  also
+    EF -> DB : SELECT intervencion_metricas_nivel
+  also
+    EF -> DB : SELECT intervencion_accesos_nivel
+  also
+    EF -> DB : SELECT sesiones_evaluacion (final)
+  also
+    EF -> DB : SELECT seguimiento_diario (semana en curso)
+  end
+  EF --> G : JSON consolidado
+  G --> D : datos del paciente
+  D --> A : renderiza panel + gráficas
+end
+@enduml</pre>
+        </div>
+      </div>
+
+      <h3>Exportación a Excel</h3>
+      <p>
+        El dashboard permite exportar a <code>.xlsx</code> tanto a un paciente seleccionado como
+        a todos los pacientes en un solo archivo con una pestaña por persona. La utilidad
+        <code>buildPatientSheet</code> construye la matriz de filas que <code>SheetJS</code>
+        materializa con <code>XLSX.utils.book_append_sheet</code> y <code>XLSX.writeFile</code>.
+        El nombre del archivo incluye la fecha ISO del día.
+      </p>
+
+      <h3>Eliminación de pacientes</h3>
+      <p>
+        Solo los SUPER_ADMIN ven el botón "Eliminar paciente". El handler invoca la Edge
+        Function <code>delete-patient</code>, que verifica el rol del solicitante, recupera las
+        sesiones del paciente y realiza un borrado en cascada de todas las tablas asociadas
+        (intervención, evaluaciones, seguimiento) antes de eliminar el perfil y, finalmente, la
+        cuenta correspondiente en Supabase Auth.
+      </p>
+    </section>
+
+    <hr class="section-divider" />
+
+    <!-- ══════════════ 2.8 Modelo de datos -->
+    <section id="s8">
+      <h2>2.8 Modelo de datos</h2>
+      <p>
+        El esquema relacional reside en el proyecto Supabase compartido con la aplicación
+        móvil. La Tabla 4 resume las relaciones más relevantes para el dashboard web; la app
+        móvil contiene tablas adicionales propias del flujo terapéutico que no son
+        manipuladas por este subsistema.
+      </p>
+      <p><strong>Tabla 4.</strong> Tablas consumidas por el dashboard web</p>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Tabla</th>
+              <th>Origen</th>
+              <th>Propósito</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>admins</code></td><td>Dashboard</td><td>Personal autorizado (rol, estado, vínculo con <code>auth.users</code>)</td></tr>
+            <tr><td><code>audit_logs</code></td><td>Dashboard</td><td>Bitácora de eventos administrativos (login, invitaciones, suspensiones)</td></tr>
+            <tr><td><code>perfiles</code></td><td>App móvil</td><td>Datos demográficos y de identidad de cada paciente</td></tr>
+            <tr><td><code>sesiones_evaluacion</code></td><td>App móvil</td><td>Marcas de inicio/fin de cada sesión de evaluación</td></tr>
+            <tr><td><code>evaluaciones_internivel</code></td><td>App móvil</td><td>Puntajes OASIS, ODSIS y bienestar por nivel</td></tr>
+            <tr><td><code>intervencion_niveles_progreso</code></td><td>App móvil</td><td>Progreso del paciente dentro de cada uno de los siete niveles</td></tr>
+            <tr><td><code>intervencion_ejercicios_respuestas</code></td><td>App móvil</td><td>Ejercicios completados, duración y código</td></tr>
+            <tr><td><code>intervencion_metricas_nivel</code></td><td>App móvil</td><td>Métricas y recomendaciones generadas por IA</td></tr>
+            <tr><td><code>intervencion_accesos_nivel</code></td><td>App móvil</td><td>Conteo de accesos por nivel</td></tr>
+            <tr><td><code>seguimiento_diario</code></td><td>App móvil</td><td>Registro emocional diario (clave, etiqueta, intensidad)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="diagram-card">
+        <div class="diagram-card-header">Diagrama Entidad-Relación — Esquema esencial</div>
+        <div class="diagram-card-body">
+          <div class="diagram-loading"><span class="spinner"></span> Generando diagrama…</div>
+          <pre class="plantuml-source">@startuml ER_Esencial
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor #EAF0F9
+  BorderColor #4A6FA5
+  FontColor #1a1a2e
+  HeaderBackgroundColor #4A6FA5
+  HeaderFontColor #FFFFFF
+}
+
+entity "auth.users" as AU {
+  * id : uuid
+  --
+  email
+  encrypted_password
+}
+
+entity "admins" as ADM {
+  * id_admin : uuid
+  --
+  nombre
+  apellido
+  username
+  role
+  is_active
+  auth_user_id : uuid
+  last_login_at
+  created_at
+}
+
+entity "audit_logs" as AL {
+  * id : uuid
+  --
+  action
+  actor_email
+  target_email
+  metadata : jsonb
+  created_at
+}
+
+entity "perfiles" as P {
+  * id_usuario : uuid
+  --
+  nombre
+  apellidos
+  fecha_nacimiento
+  es_mayor_edad
+  sexo
+  lugar_residencia
+  total_conexiones
+  usuario_activo
+  creado_en
+}
+
+entity "sesiones_evaluacion" as SE {
+  * id : uuid
+  --
+  id_usuario : uuid
+  tipo_sesion
+  completada_en
+}
+
+entity "evaluaciones_internivel" as EI {
+  * id : uuid
+  --
+  id_usuario : uuid
+  nivel
+  oasis_total
+  odsis_total
+  baseline_oasis
+  baseline_odsis
+  bienestar_score
+  enviada
+  enviada_en
+}
+
+entity "intervencion_niveles_progreso" as INP {
+  * id : uuid
+  --
+  id_usuario : uuid
+  nivel
+  pantalla_actual
+  completado
+  desbloqueado_siguiente
+  ultimo_acceso_en
+}
+
+entity "intervencion_ejercicios_respuestas" as IER {
+  * id : uuid
+  --
+  id_usuario : uuid
+  nivel
+  ejercicio_codigo
+  completado
+  duracion_segundos
+}
+
+entity "intervencion_metricas_nivel" as IMN {
+  * id : uuid
+  --
+  id_usuario : uuid
+  nivel
+  porcentaje_ejercicios
+  resumen_adherencia_ia
+  recomendacion_ia
+}
+
+entity "intervencion_accesos_nivel" as IAN {
+  * id : uuid
+  --
+  id_usuario : uuid
+  nivel
+  total_accesos
+}
+
+entity "seguimiento_diario" as SD {
+  * id : uuid
+  --
+  id_usuario : uuid
+  emocion_clave
+  emocion_etiqueta
+  intensidad
+  fecha
+}
+
+AU ||--o| ADM : auth_user_id
+AU ||--o| P  : id_usuario
+P ||--o{ SE  : id_usuario
+P ||--o{ EI  : id_usuario
+P ||--o{ INP : id_usuario
+P ||--o{ IER : id_usuario
+P ||--o{ IMN : id_usuario
+P ||--o{ IAN : id_usuario
+P ||--o{ SD  : id_usuario
+ADM ||--o{ AL : actor_email
+@enduml</pre>
+        </div>
+      </div>
+    </section>
+
+    <hr class="section-divider" />
+
+    <!-- ══════════════ 2.9 Edge Functions -->
+    <section id="s9">
+      <h2>2.9 Edge Functions</h2>
+      <p>
+        Las siete funciones Deno se encuentran en <code>supabase/functions/</code>. Todas
+        comparten los mismos encabezados CORS, manejan la petición preliminar
+        <code>OPTIONS</code> y devuelven respuestas JSON. La Tabla 5 las describe.
+      </p>
+      <p><strong>Tabla 5.</strong> Edge Functions del subsistema</p>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Función</th>
+              <th>Autorización</th>
+              <th>Servicios externos</th>
+              <th>Resumen</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>activate-admin-account</code></td><td>Anon key</td><td>Supabase Auth Admin</td><td>Crea o actualiza el usuario en <code>auth.users</code> y marca <code>admins.is_active = true</code>.</td></tr>
+            <tr><td><code>send-invitation-email</code></td><td>Bearer SUPER_ADMIN</td><td>Resend</td><td>Envía la plantilla HTML de invitación con el enlace a <code>/admin/activate</code>.</td></tr>
+            <tr><td><code>send-reset-email</code></td><td>Anon key</td><td>Supabase Auth Admin + Resend</td><td>Genera enlace mágico de recuperación y lo envía por correo.</td></tr>
+            <tr><td><code>send-verification-email</code></td><td>Anon key</td><td>Supabase Auth Admin + Resend</td><td>Crea el usuario móvil y envía correo de verificación con redirect <code>/mobile-verify-email</code>.</td></tr>
+            <tr><td><code>send-contact-email</code></td><td>Anon key</td><td>Resend</td><td>Entrega los mensajes del formulario público en <code>serenamente@iztacala.unam.mx</code>.</td></tr>
+            <tr><td><code>get-patient-data</code></td><td>Bearer ADMIN activo</td><td>—</td><td>Devuelve datos consolidados del paciente para el dashboard.</td></tr>
+            <tr><td><code>delete-patient</code></td><td>Bearer SUPER_ADMIN</td><td>Supabase Auth Admin</td><td>Borra en cascada todas las tablas clínicas y el usuario móvil.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="info-box warning">
+        <span class="icon">⚠</span>
+        <span>Las funciones que reciben un Bearer token verifican el rol con
+        <code>auth.getUser(token)</code> seguido de un <code>SELECT</code> sobre
+        <code>admins</code>. Esta doble verificación complementa las políticas RLS y
+        previene escaladas de privilegios si las claves anónimas se filtran.</span>
+      </div>
+    </section>
+
+    <hr class="section-divider" />
+
+    <!-- ══════════════ 2.10 Servicios cliente -->
+    <section id="s10">
+      <h2>2.10 Servicios cliente</h2>
+      <p>
+        La capa <code>services/</code> agrupa las funciones que mediante el SDK de Supabase o
+        un <code>fetch</code> directo materializan las operaciones del subsistema. El cliente
+        Supabase se instancia una sola vez en <code>lib/supabase-admin.js</code> con un
+        <code>storageKey</code> propio (<code>serenamente-admin-auth</code>) para evitar
+        colisiones con otros clientes que pudieran compartir el dominio.
+      </p>
+
+      <div class="code-dark"><span class="kw">import</span> { createClient } <span class="kw">from</span> <span class="str">"@supabase/supabase-js"</span>;
+
+<span class="kw">const</span> adminSupabaseUrl = import.meta.env.VITE_ADMIN_SUPABASE_URL;
+<span class="kw">export const</span> adminSupabaseAnonKey = import.meta.env.VITE_ADMIN_SUPABASE_ANON_KEY;
+
+<span class="kw">export const</span> adminSupabase = createClient(adminSupabaseUrl, adminSupabaseAnonKey, {
+  auth: { storageKey: <span class="str">"serenamente-admin-auth"</span> },
+});</div>
+
+      <h3>Servicios principales</h3>
+      <ul>
+        <li><strong><code>admin-users.js</code></strong>: gestión completa del ciclo de vida de los administradores (invitar, activar, suspender, reactivar, eliminar, auditar).</li>
+        <li><strong><code>dashboard.js</code></strong>: <code>listDashboardProfiles()</code> para listar pacientes excluyendo a los administradores y <code>getPatientData(userId)</code> que invoca la Edge Function.</li>
+      </ul>
+      <p>
+        Cada servicio normaliza la entrada (correos en minúsculas, nombres recortados), valida
+        precondiciones del lado del cliente con mensajes en español y propaga errores a la UI
+        con descripciones específicas que las páginas presentan en bloques
+        <code>login-error</code> o <code>activate-error</code>.
+      </p>
+    </section>
+
+    <hr class="section-divider" />
+
+    <!-- ══════════════ 2.11 Flujo general -->
+    <section id="s11">
+      <h2>2.11 Flujo general del sistema</h2>
+      <p>
+        El siguiente diagrama de actividad sintetiza los recorridos típicos del usuario por el
+        subsistema web, desde la visita anónima al sitio público hasta la operación cotidiana
+        del dashboard administrativo.
+      </p>
+
+      <div class="diagram-card">
+        <div class="diagram-card-header">Diagrama de Actividad — Flujo general del subsistema web</div>
+        <div class="diagram-card-body">
+          <div class="diagram-loading"><span class="spinner"></span> Generando diagrama…</div>
+          <pre class="plantuml-source">@startuml Flujo_General_Web
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam activity {
+  BackgroundColor #EAF0F9
+  BorderColor #4A6FA5
+  FontColor #1a1a2e
+  DiamondBackgroundColor #FFFFFF
+  DiamondBorderColor #2d4a73
+  ArrowColor #4A6FA5
+  StartColor #2d4a73
+  EndColor #2d4a73
+}
+
+start
+:Visita https://tt2-project.vercel.app;
+if (¿tipo de usuario?) then (visitante)
+  :Navega Inicio / Nosotros / Comenzar / Dudas;
+  if (¿quiere descargar app móvil?) then (sí)
+    :Escanea QR en /comenzar;
+    :Instala app Android y crea cuenta;
+    stop
+  else (no)
+    if (¿desea contactar al equipo?) then (sí)
+      :Llena formulario en /faq;
+      :Edge Function send-contact-email → Resend;
+      stop
+    else (no)
+      stop
+    endif
+  endif
+else (administrador)
+  :Ingresa a /admin/login;
+  if (¿tiene credenciales activas?) then (no)
+    if (¿recibió correo de invitación?) then (sí)
+      :Abre /admin/activate?email=...;
+      :Edge Function activate-admin-account;
+      :Inicia sesión;
+    else (no)
+      :Solicita "¿olvidaste tu contraseña?";
+      :Edge Function send-reset-email;
+      :Define nueva contraseña en /admin/reset-password;
+    endif
+  else (sí)
+    :signInWithPassword;
+  endif
+  :Carga perfil desde admins;
+  if (¿status = ACTIVE?) then (no)
+    :signOut + mensaje de cuenta no activa;
+    stop
+  else (sí)
+    if (¿rol?) then (SUPER_ADMIN)
+      :Redirige a /admin/users;
+      :Invita / suspende / reactiva administradores;
+      :Consulta bitácora de auditoría;
+    else (ADMIN)
+      :Redirige a /admin/dashboard;
+    endif
+    :Selecciona paciente del listado;
+    :Edge Function get-patient-data devuelve consolidado;
+    :Renderiza panel clínico + gráfica emocional;
+    if (¿quiere exportar?) then (sí)
+      :Genera .xlsx con SheetJS;
+    endif
+    if (¿quiere eliminar paciente?) then (sí + es SUPER_ADMIN)
+      :Edge Function delete-patient (cascada);
+    endif
+    :Cierra sesión;
+    stop
+  endif
+endif
+@enduml</pre>
+        </div>
+      </div>
+
+      <p>
+        El despliegue continuo se realiza desde la rama principal del repositorio en GitHub: cada
+        <em>push</em> a producción dispara una compilación de Vite en Vercel, el bundle estático
+        se sirve desde el CDN global y las Edge Functions se publican mediante la CLI de
+        Supabase. Las claves de servicio nunca se exponen al cliente; únicamente las claves
+        anónimas <code>VITE_*</code> viajan al navegador.
+      </p>
+    </section>
+
+    <hr class="section-divider" />
+
+    <!-- ══════════════ 2.12 Pruebas de carga y rendimiento -->
+    <section id="s12">
+      <h2>2.12 Pruebas de carga y rendimiento</h2>
+      <p>
+        Con el propósito de caracterizar la capacidad operativa del subsistema web bajo carga
+        concurrente y de identificar sus límites prácticos, se llevó a cabo una batería de
+        cuatro pruebas automatizadas sobre el entorno de producción
+        (<code>https://tt2-project.vercel.app</code>) el día <strong>20 de mayo de 2026</strong>.
+        Cada prueba se orientó a un componente distinto de la arquitectura: la <em>Edge Function</em>
+        más exigente del backend, el endpoint de autenticación, el flujo autenticado completo y,
+        finalmente, las páginas estáticas servidas desde el CDN de Vercel.
+      </p>
+
+      <div class="info-box note">
+        <span class="icon">ℹ️</span>
+        <span>El objetivo de estas pruebas no fue determinar un máximo absoluto del sistema, sino
+        verificar que el rango operativo esperado (50–200 usuarios <em>no simultáneos</em>) se
+        cubre con holgura y describir el comportamiento del sistema cuando se le somete a una
+        concurrencia continua superior a la prevista.</span>
+      </div>
+
+      <h3 id="s12-1">2.12.1 Metodología y herramienta</h3>
+      <p>
+        Las pruebas se ejecutaron con <strong>k6 v2.0.0</strong>, una herramienta de
+        <em>load testing</em> open source que simula usuarios virtuales (VUs) escribiendo escenarios
+        en JavaScript. Cada VU ejecuta el flujo asignado en bucle continuo durante la duración
+        del escenario, lo cual representa una condición de uso mucho más exigente que el patrón
+        real (donde un administrador realiza acciones espaciadas entre sí). Los scripts utilizados
+        se encuentran versionados en el directorio <code>load-tests/</code> del repositorio.
+      </p>
+
+      <p><strong>Tabla 8.</strong> Componentes evaluados en la batería de pruebas</p>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Prueba</th>
+              <th>Componente</th>
+              <th>VUs máximos</th>
+              <th>Capa</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>Edge Function <code>get-patient-data</code></td>
+              <td>100</td>
+              <td><span class="badge badge-auth">Backend · Deno</span></td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>Autenticación <code>/auth/v1/token</code></td>
+              <td>50</td>
+              <td><span class="badge badge-super">Supabase Auth</span></td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>Flujo autenticado (REST + Edge)</td>
+              <td>100</td>
+              <td><span class="badge badge-auth">Backend mixto</span></td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>Páginas públicas <code>/</code>, <code>/about</code>, <code>/faq</code>, <code>/start</code></td>
+              <td>500</td>
+              <td><span class="badge badge-pub">CDN · Vercel</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Para cada escenario se definieron <strong>umbrales de aceptación</strong>
+        (<code>thresholds</code>) sobre dos indicadores principales: el percentil 95 del tiempo
+        de respuesta (p95) y la tasa de error global. El cumplimiento o incumplimiento de estos
+        umbrales determina el resultado <em>PASÓ</em> o <em>FALLÓ</em> de la prueba.
+      </p>
+
+      <hr class="section-divider" />
+
+      <h3 id="s12-2">2.12.2 Prueba 1 — Edge Function <code>get-patient-data</code></h3>
+      <p>
+        Evalúa de forma aislada la Edge Function que ejecuta <strong>siete consultas en paralelo</strong>
+        a la base de datos para construir el consolidado clínico de un paciente. Es la operación
+        más exigente del dashboard y por ello fue la primera en someterse a carga.
+      </p>
+
+      <p><strong>Configuración del escenario</strong></p>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Etapa</th><th>Duración</th><th>Usuarios virtuales</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Calentamiento</td><td>30 s</td><td>0 → 10</td></tr>
+            <tr><td>Carga media</td><td>1 min</td><td>10 → 50</td></tr>
+            <tr><td>Pico</td><td>1 min</td><td>50 → 100</td></tr>
+            <tr><td>Bajada</td><td>30 s</td><td>100 → 0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p><strong>Resultados obtenidos</strong></p>
+      <div class="metric-grid">
+        <div class="metric-card"><div class="label">Peticiones</div><div class="value">4,253</div></div>
+        <div class="metric-card"><div class="label">Throughput</div><div class="value">23.4 req/s</div></div>
+        <div class="metric-card"><div class="label">Tasa de error</div><div class="value ok">0.07%</div></div>
+        <div class="metric-card"><div class="label">Mediana (p50)</div><div class="value">597 ms</div></div>
+        <div class="metric-card"><div class="label">p90</div><div class="value">1,440 ms</div></div>
+        <div class="metric-card"><div class="label">p95</div><div class="value ok">1,750 ms</div></div>
+      </div>
+
+      <p><strong>Tabla 9.</strong> Umbrales definidos y resultado</p>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Umbral</th><th>Condición</th><th>Resultado</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Tiempo de respuesta p95</td><td>&lt; 3,000 ms</td><td><span class="badge badge-pass">✓ PASÓ</span> 1,750 ms</td></tr>
+            <tr><td>Tasa de error</td><td>&lt; 5%</td><td><span class="badge badge-pass">✓ PASÓ</span> 0.07%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        La Edge Function mantuvo una mediana de 597 ms y un p95 de 1,750 ms incluso al alcanzar
+        100 usuarios concurrentes; únicamente 3 peticiones de 4,253 terminaron en <em>timeout</em>
+        (todas durante el pico máximo). El comportamiento es ampliamente compatible con el rango
+        operativo esperado y con holgura frente al umbral exigido.
+      </p>
+
+      <hr class="section-divider" />
+
+      <h3 id="s12-3">2.12.3 Prueba 2 — Login simultáneo</h3>
+      <p>
+        Esta prueba se diseñó para medir el endpoint <code>POST /auth/v1/token?grant_type=password</code>
+        de Supabase Auth bajo carga concurrente. Cada VU ejecuta una autenticación con credenciales
+        válidas en bucle continuo.
+      </p>
+
+      <p><strong>Resultados obtenidos</strong></p>
+      <div class="metric-grid">
+        <div class="metric-card"><div class="label">Iteraciones</div><div class="value">3,281</div></div>
+        <div class="metric-card"><div class="label">VUs máximos</div><div class="value">50</div></div>
+        <div class="metric-card"><div class="label">Tasa de error</div><div class="value bad">100%</div></div>
+        <div class="metric-card"><div class="label">Resultado</div><div class="value bad">FALLÓ</div></div>
+      </div>
+
+      <p>
+        La totalidad de los intentos de inicio de sesión falló a partir de los ~46 segundos de
+        ejecución. Los errores observados (<code>connection reset by peer</code>,
+        <code>PROTOCOL_ERROR</code>, <code>request timeout</code>, <code>unexpected EOF</code>)
+        son indicativos del comportamiento defensivo de Supabase Auth ante múltiples intentos
+        de autenticación provenientes de una misma IP.
+      </p>
+
+      <div class="info-box warning">
+        <span class="icon">⚠</span>
+        <span><strong>Causa identificada — Rate limiting de Supabase Auth.</strong> El servicio
+        aplica un límite por IP sobre <code>/auth/v1/token</code> como medida de seguridad contra
+        ataques de fuerza bruta. La prueba reproduce precisamente el patrón que ese mecanismo
+        está diseñado para bloquear (50 logins simultáneos desde la misma dirección de origen).</span>
+      </div>
+
+      <p>
+        En consecuencia, este resultado <strong>no representa un problema de capacidad del
+        sistema</strong>: los administradores inician sesión de forma esporádica (una vez por
+        sesión de trabajo) y la sesión persiste en el navegador durante horas, por lo que el
+        patrón probado no se reproduce en condiciones reales. La conclusión metodológica de
+        esta prueba motivó el diseño de la Prueba 3, que evalúa el flujo autenticado utilizando
+        tokens obtenidos previamente.
+      </p>
+
+      <hr class="section-divider" />
+
+      <h3 id="s12-4">2.12.4 Prueba 3 — Flujo autenticado completo</h3>
+      <p>
+        Cada VU ejecuta dos operaciones en secuencia, omitiendo el paso de login (cada usuario
+        utiliza un token pre-obtenido para aislar la prueba del <em>rate limiting</em> de Auth):
+      </p>
+      <ol>
+        <li><strong>Listado de pacientes</strong> — <code>GET /rest/v1/perfiles</code> sobre la API REST.</li>
+        <li><strong>Datos de paciente</strong> — <code>POST /functions/v1/get-patient-data</code> sobre la Edge Function.</li>
+      </ol>
+
+      <p><strong>Tabla 10.</strong> Resultados comparativos por endpoint</p>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Métrica</th><th>Listado de pacientes (REST)</th><th>Datos de paciente (Edge)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Total de peticiones</td><td>1,118</td><td>1,093</td></tr>
+            <tr><td>Tasa de éxito</td><td><span class="badge badge-fail">0%</span></td><td><span class="badge badge-pass">96.4%</span></td></tr>
+            <tr><td>Tiempo promedio</td><td>3,160 ms</td><td>3,290 ms</td></tr>
+            <tr><td>p90</td><td>2,710 ms</td><td>3,290 ms</td></tr>
+            <tr><td>p95</td><td>18,840 ms</td><td>11,260 ms</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p><strong>Tasa de error global:</strong> 52.32% (1,157 errores de 2,211 peticiones)</p>
+
+      <p><strong>Análisis del cuello de botella</strong></p>
+      <p>
+        El contraste entre ambos endpoints es revelador. La Edge Function mantuvo una tasa de
+        éxito del 96.4% bajo 100 VUs continuos, mientras que el acceso REST directo a la tabla
+        <code>perfiles</code> falló en su totalidad. Los errores observados sobre el endpoint
+        REST (<code>request timeout</code>, <code>connection reset by peer</code>, <code>EOF</code>)
+        son consistentes con la saturación del <em>pool de conexiones</em> de PostgreSQL
+        en el plan gratuito de Supabase, cuyo límite práctico ronda las <strong>50 conexiones
+        concurrentes continuas</strong>. Las Edge Functions, en cambio, operan sobre un pool de
+        recursos independiente (runtime Deno) y por ello toleran mejor la concurrencia sostenida.
+      </p>
+
+      <div class="info-box warning">
+        <span class="icon">⚠</span>
+        <span><strong>Hallazgo principal.</strong> Bajo carga continua superior a 50 VUs
+        simultáneos, la API REST de Supabase es el componente <em>más sensible</em> de la
+        arquitectura. Esto no compromete el uso real esperado, pero condiciona el camino de
+        escalamiento futuro: una migración a un plan superior (que amplía el pool de conexiones)
+        o el rediseño del listado de pacientes como Edge Function permitiría sostener mayor
+        concurrencia.</span>
+      </div>
+
+      <hr class="section-divider" />
+
+      <h3 id="s12-5">2.12.5 Prueba 4 — Páginas públicas (Vercel CDN)</h3>
+      <p>
+        La cuarta prueba aisló el apartado informativo del sitio (frontend estático servido
+        desde el CDN global de Vercel) y lo sometió al escenario más exigente de la batería:
+        un pico de <strong>500 VUs simultáneos</strong> accediendo aleatoriamente a las páginas
+        <code>/</code>, <code>/about</code>, <code>/faq</code> y <code>/start</code>.
+      </p>
+
+      <p><strong>Resultados obtenidos</strong></p>
+      <div class="metric-grid">
+        <div class="metric-card"><div class="label">Peticiones</div><div class="value">9,814</div></div>
+        <div class="metric-card"><div class="label">Throughput</div><div class="value">52.8 req/s</div></div>
+        <div class="metric-card"><div class="label">Tasa de error</div><div class="value ok">0.12%</div></div>
+        <div class="metric-card"><div class="label">Mediana (p50)</div><div class="value ok">1,600 ms</div></div>
+        <div class="metric-card"><div class="label">p90</div><div class="value warn">6,020 ms</div></div>
+        <div class="metric-card"><div class="label">p95</div><div class="value warn">8,160 ms</div></div>
+      </div>
+
+      <p><strong>Tasa de éxito por página</strong></p>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Página</th><th>Ruta</th><th>Tasa de éxito</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Nosotros</td><td><code>/about</code></td><td><span class="badge badge-pass">100%</span></td></tr>
+            <tr><td>Inicio</td><td><code>/</code></td><td><span class="badge badge-pass">99.8%</span></td></tr>
+            <tr><td>Preguntas frecuentes</td><td><code>/faq</code></td><td><span class="badge badge-pass">99.8%</span></td></tr>
+            <tr><td>Inicio de sesión</td><td><code>/start</code></td><td><span class="badge badge-pass">99.8%</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        El sistema soportó 500 usuarios simultáneos con una tasa de error de apenas 0.12% — solo
+        12 fallos de 9,814 peticiones, todos durante el pico extremo de carga. El p95 elevado
+        (8,160 ms) debe leerse en su contexto: corresponde al bucle continuo de 500 VUs, una
+        condición artificial que no representa el uso real del sitio informativo. La
+        <strong>mediana de 1,600 ms</strong> indica que la experiencia mayoritaria es
+        satisfactoria incluso bajo esa presión.
+      </p>
+
+      <div class="info-box note">
+        <span class="icon">ℹ️</span>
+        <span><strong>Comparativa pendiente.</strong> Esta prueba se replicará sobre la URL de
+        los servidores de la UNAM (migración prevista) para comparar el rendimiento de ambas
+        infraestructuras de hosting. Los resultados de Vercel sirven como <em>línea base de
+        referencia</em> para esa comparación.</span>
+      </div>
+
+      <hr class="section-divider" />
+
+      <h3 id="s12-6">2.12.6 Resumen ejecutivo y conclusión general</h3>
+      <p>
+        La Tabla 11 sintetiza los resultados de la batería completa.
+      </p>
+
+      <p><strong>Tabla 11.</strong> Resumen de la batería de pruebas de carga</p>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Prueba</th>
+              <th>Componente</th>
+              <th>VUs máx</th>
+              <th>Tasa de error</th>
+              <th>p95</th>
+              <th>Resultado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>Edge function <code>get-patient-data</code></td>
+              <td>100</td>
+              <td>0.07%</td>
+              <td>1,750 ms</td>
+              <td><span class="badge badge-pass">✓ PASÓ</span></td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>Login simultáneo (<code>auth/v1/token</code>)</td>
+              <td>50</td>
+              <td>100%</td>
+              <td>—</td>
+              <td><span class="badge badge-warn">⚠ Rate limiting</span></td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>Listado de pacientes (REST API)</td>
+              <td>100</td>
+              <td>100%</td>
+              <td>18,840 ms</td>
+              <td><span class="badge badge-fail">✗ Saturación pool</span></td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>Edge function (en flujo autenticado)</td>
+              <td>100</td>
+              <td>3.6%</td>
+              <td>11,260 ms</td>
+              <td><span class="badge badge-warn">⚠ Degradación leve</span></td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>Páginas públicas — Vercel CDN</td>
+              <td>500</td>
+              <td>0.12%</td>
+              <td>8,160 ms</td>
+              <td><span class="badge badge-pass">✓ PASÓ (error rate)</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        En síntesis, el sistema soporta de manera confiable el rango operativo esperado de
+        <strong>50 a 200 usuarios no simultáneos</strong>. El frontend en Vercel CDN es el
+        componente más robusto, tolerando 500 VUs con apenas 0.12% de errores. Dentro del
+        backend, las Edge Functions de Supabase (runtime Deno) demostraron ser el canal más
+        resiliente para operaciones complejas, mientras que la API REST directa de Supabase
+        es el componente más sensible bajo carga extrema continua, limitada por el pool de
+        conexiones del plan contratado.
+      </p>
+
+      <p>
+        Para los volúmenes contemplados en el alcance de la intervención de telepsicología
+        — donde los administradores no realizan peticiones de forma continua y simultánea desde
+        un único origen — el rendimiento medido es adecuado y deja margen razonable para
+        crecimiento. Las rutas de escalamiento identificadas (upgrade del plan de Supabase,
+        rediseño del listado como Edge Function, o migración del hosting estático a los
+        servidores de la UNAM) quedan documentadas como trabajo futuro.
+      </p>
+    </section>
+
+  </div>
+</div>
+
+<script>
+  /* ── PlantUML encoder (deflate + base64 a la PlantUML) ───── */
+  function encode6bit(b) {
+    if (b < 10) return String.fromCharCode(48 + b);
+    b -= 10;
+    if (b < 26) return String.fromCharCode(65 + b);
+    b -= 26;
+    if (b < 26) return String.fromCharCode(97 + b);
+    b -= 26;
+    if (b === 0) return '-';
+    if (b === 1) return '_';
+    return '?';
+  }
+
+  function append3bytes(b1, b2, b3) {
+    const c1 = b1 >> 2;
+    const c2 = ((b1 & 0x3) << 4) | (b2 >> 4);
+    const c3 = ((b2 & 0xf) << 2) | (b3 >> 6);
+    const c4 = b3 & 0x3f;
+    return encode6bit(c1) + encode6bit(c2) + encode6bit(c3) + encode6bit(c4);
+  }
+
+  function encode64(data) {
+    let r = '';
+    for (let i = 0; i < data.length; i += 3) {
+      if (i + 2 === data.length)      r += append3bytes(data[i], data[i + 1], 0);
+      else if (i + 1 === data.length) r += append3bytes(data[i], 0, 0);
+      else                             r += append3bytes(data[i], data[i + 1], data[i + 2]);
+    }
+    return r;
+  }
+
+  function encodePlantUML(source) {
+    const utf8 = new TextEncoder().encode(source);
+    const compressed = pako.deflateRaw(utf8, { level: 9 });
+    return encode64(compressed);
+  }
+
+  /* ── Render all diagrams ────────────────────────────────────── */
+  function renderDiagrams() {
+    const sources = document.querySelectorAll('.plantuml-source');
+    sources.forEach(function(pre) {
+      const card = pre.closest('.diagram-card-body');
+      if (!card) return;
+      const loading = card.querySelector('.diagram-loading');
+
+      try {
+        const encoded = encodePlantUML(pre.textContent.trim());
+        const url = 'https://www.plantuml.com/plantuml/svg/' + encoded;
+
+        const img = document.createElement('img');
+        img.alt = 'Diagrama UML';
+        img.style.maxWidth = '100%';
+        img.style.opacity = '0';
+        img.style.transition = 'opacity 0.4s';
+
+        img.onload = function() {
+          if (loading) loading.style.display = 'none';
+          img.style.opacity = '1';
+        };
+        img.onerror = function() {
+          if (loading) loading.innerHTML = '<span style="color:#c62828">⚠ No se pudo renderizar el diagrama. Verifique su conexión a internet.</span>';
+        };
+
+        img.src = url;
+        card.appendChild(img);
+      } catch (e) {
+        if (loading) loading.innerHTML = '<span style="color:#c62828">⚠ Error al codificar el diagrama: ' + e.message + '</span>';
+      }
+    });
+  }
+
+  /* ── Sidebar active link ────────────────────────────────────── */
+  function updateActiveLink() {
+    const links = document.querySelectorAll('#sidebar nav a');
+    const sections = document.querySelectorAll('section[id], h2[id], h3[id]');
+    let current = '';
+    sections.forEach(function(s) {
+      if (window.scrollY >= s.offsetTop - 80) current = s.id;
+    });
+    links.forEach(function(a) {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  }
+
+  /* ── PDF export ─────────────────────────────────────────────── */
+  function exportarPDF() {
+    const allImgs = document.querySelectorAll('.diagram-card-body img');
+    let pending = 0;
+
+    allImgs.forEach(function(img) {
+      if (!img.complete) pending++;
+    });
+
+    if (pending > 0) {
+      const btn = document.getElementById('btn-pdf');
+      const original = btn.innerHTML;
+      btn.innerHTML = '⏳ Esperando diagramas…';
+      btn.disabled = true;
+
+      let checks = 0;
+      const interval = setInterval(function() {
+        const stillPending = Array.from(
+          document.querySelectorAll('.diagram-card-body img')
+        ).filter(function(i) { return !i.complete; }).length;
+
+        checks++;
+        if (stillPending === 0 || checks > 20) {
+          clearInterval(interval);
+          btn.innerHTML = original;
+          btn.disabled = false;
+          window.print();
+        }
+      }, 500);
+    } else {
+      window.print();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof pako !== 'undefined') {
+      renderDiagrams();
+    } else {
+      setTimeout(renderDiagrams, 1500);
+    }
+    window.addEventListener('scroll', updateActiveLink, { passive: true });
+    updateActiveLink();
+  });
+</script>
+
+</body>
+</html>

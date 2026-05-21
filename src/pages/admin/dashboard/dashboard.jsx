@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import AdminTopbar from "../../../components/admin-topbar/admin-topbar";
 import { getPatientData, listDashboardProfiles } from "../../../services/dashboard";
@@ -21,7 +21,9 @@ const fmt = (value) => {
 
 const fmtDate = (value) => {
   if (!value) return EMPTY;
-  const date = new Date(value);
+  // date-only strings (YYYY-MM-DD) must be treated as local time, not UTC
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? `${value}T12:00:00` : value;
+  const date = new Date(normalized);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "2-digit" });
 };
@@ -695,8 +697,72 @@ function Dashboard() {
               </div>
             </div>
           </div>
+
+          {/* Reportes semanales IA */}
+          {!isLoadingPatient && patientData?.reportesSemanales?.length > 0 && (
+            <div className="dashboard-tables" style={{ marginTop: 26 }}>
+              <div className="card">
+                <p className="stat-title">Reportes semanales IA</p>
+                <div className="reporte-list">
+                  {patientData.reportesSemanales.map((r) => (
+                    <ReporteItem key={r.id} reporte={r} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </section>
+    </div>
+  );
+}
+
+function parseReporte(texto) {
+  const [bulletsPart, detallePart] = texto.split("Te explico más a detalle!");
+  const bullets = (bulletsPart || "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith("•"))
+    .map((l) => l.slice(1).trim());
+  const parrafos = (detallePart || "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  return { bullets, parrafos };
+}
+
+function ReporteItem({ reporte }) {
+  const [open, setOpen] = React.useState(false);
+  const rangoFecha = `${fmtDate(reporte.fecha_inicio)} — ${fmtDate(reporte.fecha_fin)}`;
+  const { bullets, parrafos } = React.useMemo(() => parseReporte(reporte.reporte), [reporte.reporte]);
+  return (
+    <div className="reporte-item">
+      <button className="reporte-item__header" onClick={() => setOpen((v) => !v)}>
+        <span className="reporte-item__rango">{rangoFecha}</span>
+        <span className="reporte-item__chevron">{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <div className="reporte-item__body">
+          {bullets.length > 0 && (
+            <ul className="reporte-item__bullets">
+              {bullets.map((b, i) => (
+                <li key={i} className="reporte-item__bullet">{b}</li>
+              ))}
+            </ul>
+          )}
+          {parrafos.length > 0 && (
+            <>
+              <p className="reporte-item__detalle-label">Te explico más a detalle!</p>
+              <div className="reporte-item__parrafos">
+                {parrafos.map((p, i) => (
+                  <p key={i} className="reporte-item__parrafo">{p}</p>
+                ))}
+              </div>
+            </>
+          )}
+          <p className="reporte-item__meta">Generado el {fmtDate(reporte.generado_en)}</p>
+        </div>
+      )}
     </div>
   );
 }

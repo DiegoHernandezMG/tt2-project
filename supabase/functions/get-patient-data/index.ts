@@ -59,6 +59,7 @@ serve(async (req) => {
     { data: accesos },
     { data: sesionFinal },
     { data: emociones },
+    { data: reportes },
   ] = await Promise.all([
     serviceClient
       .from("evaluaciones_internivel")
@@ -105,6 +106,12 @@ serve(async (req) => {
       .gte("fecha", sundayStr)
       .lte("fecha", saturdayStr)
       .order("registrado_en", { ascending: false }),
+
+    serviceClient
+      .from("reportes_semanales")
+      .select("id, fecha_inicio, fecha_fin, reporte, generado_en")
+      .eq("id_usuario", userId)
+      .order("generado_en", { ascending: false }),
   ]);
 
   const totalAccesos = (accesos ?? []).reduce(
@@ -122,6 +129,7 @@ serve(async (req) => {
     totalAccesos,
     sesionFinal: sesionFinal ?? null,
     emocionesSemanales: emociones ?? [],
+    reportesSemanales: reportes ?? [],
     email: authUser?.email ?? null,
   });
 });
